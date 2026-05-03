@@ -1043,6 +1043,11 @@
                                 <label>Комментарий</label>
                                 <textarea id="reportComment" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; width: 100%; min-height: 100px;"></textarea>
                             </div>
+                            <div class="form-group">
+                                <label>Скриншот работы</label>
+                                <input type="file" id="reportScreenshot" accept="image/*" onchange="previewScreenshot(this)">
+                                <div id="screenshotPreview" style="margin-top: 10px;"></div>
+                            </div>
                             <button class="btn-primary" id="submitReportBtn">Отправить отчёт</button>
                         </div>
                     </div>
@@ -1081,6 +1086,7 @@
                                         <th>Рилсы</th>
                                         <th>Платформы</th>
                                         <th>Комментарий</th>
+                                        <th>Скриншот</th>
                                     </tr>
                                 </thead>
                                 <tbody id="reportsListTable">
@@ -1570,7 +1576,8 @@
         analytics: [],
         access: [],
         reports: [],
-        users: []
+        users: [],
+        currentScreenshot: null
     };
 
     // ======================== INITIALIZATION ========================
@@ -2389,6 +2396,7 @@
         }
 
         state.reports.forEach(r => {
+            const screenshotBtn = r.screenshot ? `<button class="btn-success" onclick="viewScreenshot('${r.id}')">📷 Показать</button>` : '—';
             tbody.innerHTML += `
                 <tr>
                     <td>${r.date}</td>
@@ -2398,6 +2406,7 @@
                     <td>${r.reelsCreated}/${r.reelsPublished}</td>
                     <td>${r.platforms}</td>
                     <td>${r.comment || '—'}</td>
+                    <td>${screenshotBtn}</td>
                 </tr>
             `;
         });
@@ -2722,6 +2731,7 @@
         const platforms = Array.from(document.querySelectorAll('.reportPlatform:checked')).map(cb => cb.value).join(', ') || 'Не выбрано';
 
         const report = {
+            id: Date.now(),
             date: date,
             time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
             user: state.currentUser,
@@ -2729,7 +2739,8 @@
             reelsCreated: parseInt(document.getElementById('reportReelsCreated').value) || 0,
             reelsPublished: parseInt(document.getElementById('reportReelsPublished').value) || 0,
             platforms: platforms,
-            comment: document.getElementById('reportComment').value
+            comment: document.getElementById('reportComment').value,
+            screenshot: state.currentScreenshot || null
         };
 
         state.reports.push(report);
@@ -2743,6 +2754,9 @@
         document.getElementById('reportReelsPublished').value = '0';
         document.querySelectorAll('.reportPlatform').forEach(cb => cb.checked = false);
         document.getElementById('reportComment').value = '';
+        document.getElementById('reportScreenshot').value = '';
+        document.getElementById('screenshotPreview').innerHTML = '';
+        state.currentScreenshot = null;
 
         renderReportsTable();
         showToast('Отчёт отправлен ✓');
@@ -2871,6 +2885,62 @@
         if (!dateString) return '—';
         const date = new Date(dateString);
         return date.toLocaleDateString('ru-RU', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+
+    function previewScreenshot(input) {
+        const preview = document.getElementById('screenshotPreview');
+        preview.innerHTML = '';
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.maxWidth = '200px';
+                img.style.maxHeight = '200px';
+                img.style.borderRadius = '6px';
+                img.style.border = '1px solid var(--border)';
+                preview.appendChild(img);
+
+                // Store in state
+                state.currentScreenshot = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function viewScreenshot(reportId) {
+        const report = state.reports.find(r => r.id == reportId);
+        if (!report || !report.screenshot) {
+            alert('Скриншот не найден');
+            return;
+        }
+
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+
+        modal.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 8px; max-width: 80vw; max-height: 80vh; overflow: auto;">
+                <button onclick="this.parentElement.parentElement.remove()" style="float: right; background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">✕ Закрыть</button>
+                <img src="${report.screenshot}" style="max-width: 100%; max-height: 100%; border-radius: 4px; margin-top: 10px;">
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
     }
 
     function togglePassword(idx) {
