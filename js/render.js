@@ -475,9 +475,12 @@
             tbody.innerHTML += `
                 <tr>
                     <td>${a.project}</td>
-                    <td><a href="${a.tgLink}" target="_blank">TG-группа</a></td>
+                    <td><a href="${a.tgLink}" target="_blank" style="color: var(--primary);">TG-группа</a></td>
                     <td>${a.login}</td>
-                    <td><span id="pwd${idx}">••••••</span> <button class="btn-secondary" onclick="togglePassword(${idx})">👁</button></td>
+                    <td style="display: flex; align-items: center; gap: 10px;">
+                        <span id="pwd${idx}" style="font-family: monospace; font-weight: 500;">••••••</span>
+                        <button id="pwdBtn${idx}" class="btn-secondary" onclick="togglePassword(${idx})" style="padding: 4px 8px; font-size: 16px;" title="Показать пароль">👁️</button>
+                    </td>
                     <td>${a.note}</td>
                     <td>
                         <button class="btn-success" onclick="editAccess(${idx})">✏️</button>

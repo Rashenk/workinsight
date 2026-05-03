@@ -70,10 +70,15 @@
 
     function togglePassword(idx) {
         const pwd = document.getElementById('pwd' + idx);
+        const btn = document.getElementById('pwdBtn' + idx);
         if (pwd.textContent === '••••••') {
             pwd.textContent = state.access[idx].password;
+            btn.innerHTML = '🙈';
+            btn.title = 'Скрыть пароль';
         } else {
             pwd.textContent = '••••••';
+            btn.innerHTML = '👁️';
+            btn.title = 'Показать пароль';
         }
     }
 
