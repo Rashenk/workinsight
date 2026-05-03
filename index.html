@@ -143,6 +143,14 @@
             </div>
         </div>
 
+        <div class="nav-section">
+            <div class="nav-label">Финансы</div>
+            <div class="nav-item" data-section="finance">
+                <i class="fas fa-chart-line"></i>
+                <span>Финансы</span>
+            </div>
+        </div>
+
         <div class="nav-section" id="adminSection" style="display: none;">
             <div class="nav-label">Администратор</div>
             <div class="nav-item" data-section="access">
@@ -705,6 +713,139 @@
                 </div>
             </div>
 
+            <!-- FINANCE -->
+            <div class="content-section" id="financeSection">
+                <h2 style="margin-bottom: 20px;">💰 Финансовый отчёт</h2>
+
+                <!-- Tabs -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn-primary" id="financeSettingsTab" style="background: var(--primary); color: white; border: none;">⚙️ Настройки</button>
+                    <button class="btn-secondary" id="financeReportTab">📊 Отчет по проектам</button>
+                    <button class="btn-secondary" id="financeAnalyticsTab">📈 Итоги и графики</button>
+                </div>
+
+                <!-- Settings -->
+                <div id="financeSettings">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Финансовые параметры</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div class="form-group">
+                                <label>Базовая зарплата сотрудника (₽)</label>
+                                <input type="number" id="baseSalary" value="4000" min="0" step="100" onchange="updateFinanceParams()">
+                                <small style="color: var(--gray);">Базовая ставка за выполнение месячной нормы</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Норма рилсов в месяц</label>
+                                <input type="number" id="baseReels" value="80" min="1" step="10" onchange="updateFinanceParams()">
+                                <small style="color: var(--gray);">Количество рилсов для получения базовой зарплаты</small>
+                            </div>
+                            <div style="background: #EFF6FF; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid var(--primary);">
+                                <strong>💡 Цена за рилс: <span id="pricePerReel" style="color: var(--primary); font-size: 18px;">50₽</span></strong>
+                                <small style="display: block; margin-top: 10px; color: var(--gray);">= Базовая зарплата ÷ Норма рилсов</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Прочие расходы (₽/месяц)</label>
+                                <input type="number" id="otherExpenses" value="0" min="0" step="100" onchange="updateFinanceParams()">
+                                <small style="color: var(--gray);">Инструменты, софт и т.д.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report by Projects -->
+                <div id="financeReport" style="display: none;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Доход по проектам</div>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Проект</th>
+                                        <th>Статус</th>
+                                        <th>План рилсов</th>
+                                        <th>Сделано рилсов</th>
+                                        <th>Цена за рилс</th>
+                                        <th>Расчётный доход</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeProjectsTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="table-section" style="margin-top: 20px;">
+                        <div class="table-header">
+                            <div class="table-title">Сводка по доходам</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                                <div class="stat-card" style="border-left-color: var(--success);">
+                                    <div class="stat-label">Доход от завершённых</div>
+                                    <div class="stat-value" id="incomeCompleted">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--warning);">
+                                    <div class="stat-label">Доход от отменённых</div>
+                                    <div class="stat-value" id="incomeCancelled">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--primary);">
+                                    <div class="stat-label">Общий доход</div>
+                                    <div class="stat-value" id="totalIncome">0₽</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics and Summary -->
+                <div id="financeAnalytics" style="display: none;">
+                    <div class="table-section" style="margin-bottom: 20px;">
+                        <div class="table-header">
+                            <div class="table-title">Общие итоги</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                                <div class="stat-card" style="border-left-color: var(--success);">
+                                    <div class="stat-label">Общий доход</div>
+                                    <div class="stat-value" id="totalIncomeAll">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--danger);">
+                                    <div class="stat-label">Расходы</div>
+                                    <div class="stat-value" id="totalExpenses">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--primary);">
+                                    <div class="stat-label">Прибыль</div>
+                                    <div class="stat-value" id="totalProfit">0₽</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <div class="table-section">
+                            <div class="table-header">
+                                <div class="table-title">Доход</div>
+                            </div>
+                            <div style="padding: 20px;">
+                                <canvas id="chartIncome" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                        <div class="table-section">
+                            <div class="table-header">
+                                <div class="table-title">Расход vs Доход</div>
+                            </div>
+                            <div style="padding: 20px;">
+                                <canvas id="chartProfitMargin" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ACCESS (Admin only) -->
             <div class="content-section" id="accessSection">
                 <div style="background: #FEE2E2; padding: 15px; border-left: 4px solid var(--danger); border-radius: 4px; margin-bottom: 20px;">
@@ -995,6 +1136,7 @@
 <script src="js/render.js"></script>
 <script src="js/modals.js"></script>
 <script src="js/crud.js"></script>
+<script src="js/finance.js"></script>
 <script src="js/events.js"></script>
 <script src="js/app.js"></script>
 

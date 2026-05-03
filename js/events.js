@@ -138,5 +138,8 @@
                 }
             });
         });
+
+        // Finance tabs
+        setupFinanceTabs();
     }
 

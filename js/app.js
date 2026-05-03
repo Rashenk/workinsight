@@ -7,6 +7,7 @@ function initializeApp() {
     }
     setupEventListeners();
     renderDashboard();
+    updateFinanceParams();
 }
 
 // Инициализация при загрузке страницы
