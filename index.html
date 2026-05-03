@@ -1,0 +1,2849 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkInsight - SMM Management System</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563EB;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --bg: #F8FAFC;
+            --white: #FFFFFF;
+            --dark: #1F2937;
+            --gray: #6B7280;
+            --light-gray: #D1D5DB;
+            --border: #E5E7EB;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--dark);
+        }
+
+        /* ======================== LOGIN SCREEN ======================== */
+        .login-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .login-screen.active {
+            display: flex;
+        }
+
+        .login-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo h1 {
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .role-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border);
+            background: var(--white);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .role-btn.active {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .login-btn {
+            padding: 12px;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .login-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* ======================== MAIN LAYOUT ======================== */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            background: var(--bg);
+        }
+
+        .app-container.login-active {
+            display: none;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 280px;
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            padding: 20px 0;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-logo {
+            padding: 0 20px 30px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-section {
+            margin-bottom: 20px;
+        }
+
+        .nav-label {
+            padding: 0 20px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--gray);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: #F3F4F6;
+            color: var(--primary);
+        }
+
+        .nav-item.active {
+            background: #EFF6FF;
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* HEADER */
+        .header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--gray);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: var(--danger);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* ======================== CARDS & STATS ======================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        /* ======================== TABLES ======================== */
+        .table-section {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            width: 250px;
+        }
+
+        .btn-primary {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            padding: 8px 16px;
+            background: var(--light-gray);
+            color: var(--dark);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #bfdbfe;
+        }
+
+        .btn-danger {
+            padding: 6px 12px;
+            background: var(--danger);
+            color: var(--white);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            padding: 6px 12px;
+            background: var(--success);
+            color: var(--white);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #F9FAFB;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            padding: 12px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--gray);
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: #F9FAFB;
+        }
+
+        /* ======================== MODALS ======================== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        /* ======================== BADGES & TAGS ======================== */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .badge-danger {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .badge-primary {
+            background: #EFF6FF;
+            color: #1E40AF;
+        }
+
+        /* ======================== PROGRESS BAR ======================== */
+        .progress-bar {
+            height: 8px;
+            background: #E5E7EB;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s, background 0.3s;
+            border-radius: 4px;
+        }
+
+        .progress-fill.low {
+            background: var(--danger);
+        }
+
+        .progress-fill.medium {
+            background: var(--warning);
+        }
+
+        .progress-fill.high {
+            background: var(--primary);
+        }
+
+        .progress-fill.complete {
+            background: var(--success);
+        }
+
+        /* ======================== EMPTY STATE ======================== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* ======================== RESPONSIVE ======================== */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                overflow-y: visible;
+                display: flex;
+                gap: 0;
+            }
+
+            .nav-section {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 0;
+            }
+
+            .nav-label {
+                display: none;
+            }
+
+            .nav-item {
+                padding: 10px;
+                justify-content: center;
+                border-left: none;
+                border-bottom: 3px solid transparent;
+            }
+
+            .nav-item.active {
+                border-left: none;
+                border-bottom-color: var(--primary);
+            }
+
+            .app-container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .main-content {
+                height: auto;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .search-input {
+                width: 100%;
+                max-width: 200px;
+            }
+
+            .table-controls {
+                flex-wrap: wrap;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ======================== LOGIN SCREEN ======================== -->
+<div class="login-screen active" id="loginScreen">
+    <div class="login-card">
+        <div class="login-logo">
+            <h1>WorkInsight</h1>
+            <p>SMM Management System</p>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div class="login-form" id="loginForm">
+            <div>
+                <label style="margin-bottom: 10px; display: block;">Выберите роль:</label>
+                <div class="role-selector">
+                    <button class="role-btn active" data-role="employee" type="button">👥 Сотрудник</button>
+                    <button class="role-btn" data-role="admin" type="button">🔐 Администратор</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Email или имя *</label>
+                <input type="text" id="userName" placeholder="введите email или имя">
+            </div>
+
+            <div class="form-group" id="passwordGroup" style="display: none;">
+                <label>Пароль *</label>
+                <input type="password" id="userPassword" placeholder="Введите пароль">
+            </div>
+
+            <button class="login-btn" id="loginBtn" type="button">Войти</button>
+            <p style="text-align: center; margin-top: 15px; color: var(--gray); font-size: 14px;">
+                Нет аккаунта? <a href="#" onclick="showRegisterForm(event)" style="color: var(--primary); cursor: pointer; text-decoration: none;">Зарегистрироваться</a>
+            </p>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div class="login-form" id="registerForm" style="display: none;">
+            <h3 style="margin-bottom: 20px; text-align: center; color: var(--dark);">Регистрация</h3>
+
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="regEmail" placeholder="example@mail.com">
+                <small id="emailError" style="color: var(--danger); display: none;"></small>
+            </div>
+
+            <div class="form-group">
+                <label>Имя Фамилия *</label>
+                <input type="text" id="regName" placeholder="Введите имя и фамилию">
+            </div>
+
+            <div class="form-group">
+                <label>Номер телефона *</label>
+                <input type="tel" id="regPhone" placeholder="+7 (XXX) XXX-XX-XX">
+                <small id="phoneError" style="color: var(--danger); display: none;"></small>
+            </div>
+
+            <div class="form-group">
+                <label>Пароль *</label>
+                <input type="password" id="regPassword" placeholder="Минимум 6 символов">
+                <small style="color: var(--gray);">Минимум 6 символов</small>
+            </div>
+
+            <div class="form-group">
+                <label>Подтвердите пароль *</label>
+                <input type="password" id="regPasswordConfirm" placeholder="Повторите пароль">
+                <small id="passwordError" style="color: var(--danger); display: none;"></small>
+            </div>
+
+            <button class="login-btn" id="registerBtn" type="button">Зарегистрироваться</button>
+            <p style="text-align: center; margin-top: 15px; color: var(--gray); font-size: 14px;">
+                Уже есть аккаунт? <a href="#" onclick="showLoginForm(event)" style="color: var(--primary); cursor: pointer; text-decoration: none;">Войти</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ======================== MAIN APP ======================== -->
+<div class="app-container" id="appContainer">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-chart-line"></i> WorkInsight
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-item active" data-section="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Дашборд</span>
+            </div>
+            <div class="nav-item" data-section="projects">
+                <i class="fas fa-list-check"></i>
+                <span>Проекты</span>
+            </div>
+            <div class="nav-item" data-section="analytics">
+                <i class="fas fa-chart-bar"></i>
+                <span>Аналитика</span>
+            </div>
+            <div class="nav-item" data-section="tasks">
+                <i class="fas fa-tasks"></i>
+                <span>Задачи</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Команда</div>
+            <div class="nav-item" data-section="employees">
+                <i class="fas fa-users"></i>
+                <span>Сотрудники</span>
+            </div>
+            <div class="nav-item" data-section="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Отчёты</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Документация</div>
+            <div class="nav-item" data-section="regulations">
+                <i class="fas fa-book"></i>
+                <span>Регламент</span>
+            </div>
+            <div class="nav-item" data-section="guide">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Гайд</span>
+            </div>
+        </div>
+
+        <div class="nav-section" id="adminSection" style="display: none;">
+            <div class="nav-label">Администратор</div>
+            <div class="nav-item" data-section="access">
+                <i class="fas fa-key"></i>
+                <span>Доступы</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-title" id="pageTitle">Дашборд</div>
+            <div class="header-user">
+                <div>
+                    <div id="userName2" style="font-weight: 600;"></div>
+                    <div class="user-role" id="userRole2"></div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">Выход</button>
+            </div>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div class="content">
+
+            <!-- DASHBOARD -->
+            <div class="content-section active" id="dashboardSection">
+                <h2 style="margin-bottom: 20px;">Обзор проектов</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Всего проектов</div>
+                        <div class="stat-value" id="statTotal">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--primary);">
+                        <div class="stat-label">В работе</div>
+                        <div class="stat-value" id="statActive">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--warning);">
+                        <div class="stat-label">На паузе</div>
+                        <div class="stat-value" id="statPause">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--success);">
+                        <div class="stat-label">Готово</div>
+                        <div class="stat-value" id="statDone">0</div>
+                    </div>
+                </div>
+
+                <div class="table-section" style="margin-bottom: 30px;">
+                    <div class="table-header">
+                        <div class="table-title">Проекты в работе</div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Проект</th>
+                                    <th>Ответственный</th>
+                                    <th>Платформа</th>
+                                    <th>План</th>
+                                    <th>Сделано</th>
+                                    <th>%</th>
+                                    <th>Прогресс</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">План vs Факт</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartCompare"></canvas>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">По этапам</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartStages"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROJECTS -->
+            <div class="content-section" id="projectsSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Все проекты</div>
+                        <div class="table-controls">
+                            <input type="text" class="search-input" id="projectSearch" placeholder="Поиск..." oninput="filterTable(this, 'projectsTable')">
+                            <button class="btn-primary" id="addProjectBtn">+ Добавить проект</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Название</th>
+                                    <th>Этап</th>
+                                    <th>Ответственный</th>
+                                    <th>Платформа</th>
+                                    <th>План</th>
+                                    <th>Сделано</th>
+                                    <th>%</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectsTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANALYTICS -->
+            <div class="content-section" id="analyticsSection">
+                <h2 style="margin-bottom: 20px;">Аналитика проектов</h2>
+                <div class="table-section" style="margin-bottom: 30px;">
+                    <div class="table-header">
+                        <div class="table-title">Данные аналитики</div>
+                        <div class="table-controls">
+                            <button class="btn-primary" id="addAnalyticsBtn">+ Добавить запись</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Проект</th>
+                                    <th>Ответственный</th>
+                                    <th>Просмотры</th>
+                                    <th>Подписки</th>
+                                    <th>Взаимодействия</th>
+                                    <th>Период</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analyticsTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Просмотры по проектам (топ-10)</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartViews"></canvas>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Взаимодействия по проектам</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartInteractions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TASKS -->
+            <div class="content-section" id="tasksSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Задачи</div>
+                        <div class="table-controls">
+                            <input type="text" class="search-input" id="taskSearch" placeholder="Поиск..." oninput="filterTable(this, 'tasksTable')">
+                            <button class="btn-primary" id="addTaskBtn">+ Добавить задачу</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Проект</th>
+                                    <th>Задача</th>
+                                    <th>Срок</th>
+                                    <th>Ответственный</th>
+                                    <th>Этап</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasksTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMPLOYEES -->
+            <div class="content-section" id="employeesSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Сотрудники</div>
+                        <div class="table-controls">
+                            <input type="text" class="search-input" id="employeeSearch" placeholder="Поиск..." oninput="filterTable(this, 'employeesTable')">
+                            <button class="btn-primary" id="addEmployeeBtn">+ Добавить сотрудника</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Имя</th>
+                                    <th>Город</th>
+                                    <th>Занятость</th>
+                                    <th>Проекты</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REPORTS -->
+            <div class="content-section" id="reportsSection">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn-primary" id="newReportTab" style="background: var(--primary); color: white; border: none;">📝 Новый отчёт</button>
+                    <button class="btn-secondary" id="allReportsTab">📋 Все отчёты</button>
+                </div>
+
+                <!-- New Report Form -->
+                <div id="newReportForm">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Создать новый отчёт</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div class="form-group">
+                                <label>Проект *</label>
+                                <select id="reportProject">
+                                    <option value="">Выберите проект</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Дата *</label>
+                                <input type="date" id="reportDate">
+                            </div>
+                            <div class="form-group">
+                                <label>Рилсов сделано</label>
+                                <input type="number" id="reportReelsCreated" value="0" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Рилсов выложено</label>
+                                <input type="number" id="reportReelsPublished" value="0" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Платформы</label>
+                                <div style="display: flex; gap: 15px;">
+                                    <label><input type="checkbox" class="reportPlatform" value="Instagram"> Instagram</label>
+                                    <label><input type="checkbox" class="reportPlatform" value="VK"> ВКонтакте</label>
+                                    <label><input type="checkbox" class="reportPlatform" value="Telegram"> Телеграм</label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Комментарий</label>
+                                <textarea id="reportComment" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; width: 100%; min-height: 100px;"></textarea>
+                            </div>
+                            <button class="btn-primary" id="submitReportBtn">Отправить отчёт</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Reports Table -->
+                <div id="allReportsTable" style="display: none;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Все отчёты</div>
+                            <div class="table-controls">
+                                <button class="btn-secondary" onclick="exportCSV('reportsListTable', 'reports.csv')">📥 Экспорт CSV</button>
+                            </div>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Время</th>
+                                        <th>Сотрудник</th>
+                                        <th>Проект</th>
+                                        <th>Рилсы</th>
+                                        <th>Платформы</th>
+                                        <th>Комментарий</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportsListTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REGULATIONS -->
+            <div class="content-section" id="regulationsSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">📄 Регламент работы монтажёра v1.1</div>
+                    </div>
+                    <div style="padding: 30px; line-height: 1.8;">
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">1. Общие положения</h3>
+                        <p>Настоящий Регламент устанавливает порядок работы монтажёра по созданию и выкладке контента для Instagram-аккаунтов. Регламент является обязательным для исполнения всеми сотрудниками, работающими над проектами компании.</p>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">1.1 Платформы и форматы</h3>
+                        <table style="border: 1px solid var(--border); margin-bottom: 20px;">
+                            <tr style="background: #F9FAFB;">
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Платформа</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">Instagram Reels, Instagram Карусели</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Формат</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">Вертикальный (9:16)</td>
+                            </tr>
+                            <tr style="background: #F9FAFB;">
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Разрешение</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">1080×1920 пикселей</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Длительность</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">6–14 секунд</td>
+                            </tr>
+                        </table>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">1.3 Нормы выработки</h3>
+                        <p><strong>Рилсы в месяц:</strong> От 50 до 90 рилсов</p>
+                        <p><strong>Карусели в месяц:</strong> От 50 до 90 каруселей</p>
+                        <p><strong>Только рилсы (новые проекты):</strong> 80 рилсов (без каруселей)</p>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">2. Технические требования</h3>
+                        <p><strong>Параметры видео:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Длительность: От 5–6 до 13–15 секунд</li>
+                            <li>Разрешение: 1080×1920 пикселей (9:16)</li>
+                            <li>Формат: MP4</li>
+                            <li>Качество экспорта: Максимальное (1080p)</li>
+                        </ul>
+
+                        <p style="margin-top: 15px;"><strong>Требования к оформлению:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Шрифт: Согласно брендбуку заказчика</li>
+                            <li>Фон: Видео на фоне или белый фон для текста</li>
+                            <li>Заголовок: Размещается на фоне, читаемый</li>
+                            <li>Безопасная зона: Текст не выходит за границы Instagram</li>
+                        </ul>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">3. Требования к контенту</h3>
+                        <p><strong>Процесс передачи материалов:</strong> Материалы для работы монтажёра передаются через Телеграм-группу проекта.</p>
+
+                        <p style="margin-top: 15px;"><strong>Этапы работы:</strong></p>
+                        <ol style="margin-left: 20px;">
+                            <li>Получить материалы от куратора</li>
+                            <li>Изучить тему проекта и требования</li>
+                            <li>Создать заголовки и описания с ИИ</li>
+                            <li>Создать карусели в getdraft.io</li>
+                            <li>Создать рилсы в CapCut</li>
+                            <li>Отправить на проверку куратору</li>
+                            <li>Внести правки при необходимости</li>
+                            <li>Выложить контент</li>
+                        </ol>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">4. Стандарты качества</h3>
+                        <p><strong>Процесс проверки:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Проверяющий: Куратор (назначенный сотрудник)</li>
+                            <li>Допустимо правок: Не более 2 правок на один материал</li>
+                            <li>Срок правок: В течение суток</li>
+                        </ul>
+
+                        <p style="margin-top: 15px;"><strong>Типичные ошибки:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Несовпадение шрифта с брендматериалами</li>
+                            <li>Чёрные рамки по бокам видео</li>
+                            <li>Закрыто лицо или важный элемент</li>
+                            <li>Видео не соответствует теме</li>
+                            <li>Текст выходит за безопасную зону</li>
+                            <li>Низкое качество экспорта</li>
+                        </ul>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">9. Система оплаты</h3>
+                        <p><strong>Базовая ставка за месяц:</strong> 4 000 ₽</p>
+                        <p><strong>Максимум с премиями:</strong> До 8 000 ₽</p>
+                        <p>Оплата производится при 100% выполнении месячной нормы по проекту.</p>
+
+                        <p style="margin-top: 20px; padding: 15px; background: #FEF3C7; border-left: 4px solid var(--warning); border-radius: 4px;">
+                            <strong>⚠️ Контакт для вопросов:</strong> <a href="https://t.me/Rubtsov_Alllex" target="_blank">https://t.me/Rubtsov_Alllex</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GUIDE -->
+            <div class="content-section" id="guideSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">📖 Гайд для монтажёра v4.0</div>
+                    </div>
+                    <div style="padding: 30px; line-height: 1.8;">
+                        <div style="background: #EFF6FF; padding: 15px; border-left: 4px solid var(--primary); border-radius: 4px; margin-bottom: 20px;">
+                            <strong>ℹ️ Как пользоваться:</strong> Этот документ — пошаговая инструкция КАК делать работу. Требования к качеству, сроки и правила оплаты — в Регламенте v1.1.
+                        </div>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">Добро пожаловать в команду</h3>
+                        <p>Ты будешь создавать контент для Instagram-аккаунтов бизнеса: карусели, рилсы и описания к ним. Задача — делать это каждый день, по проекту(-ам), которые тебе назначит куратор.</p>
+
+                        <div style="background: #FEF3C7; padding: 15px; border-left: 4px solid var(--warning); border-radius: 4px; margin-bottom: 20px;">
+                            <strong>⚠️ Первый шаг:</strong> Изучи проект, на который тебя назначили: чем занимается компания, какой ассортимент/услуги, кто целевая аудитория.
+                        </div>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">Инструменты</h3>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>Claude (ИИ)</strong> — Генерация заголовков и описаний</li>
+                            <li><strong>getdraft.io</strong> — Создание каруселей</li>
+                            <li><strong>CapCut</strong> — Создание рилсов</li>
+                            <li><strong>Телеграм-группа</strong> — Хранение материалов</li>
+                        </ul>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">1. Генерация заголовков через ИИ</h3>
+                        <p>Первый шаг — придумать заголовки для рилсов и каруселей через Claude.</p>
+
+                        <div style="background: #F3F4F6; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                            <p style="margin: 0; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word;">Представь, что ты опытный рилсмейкер...
+Твоя задача — придумать заголовки для Reels.
+[Полный текст промпта в Регламенте]</p>
+                        </div>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">2. Написание описаний</h3>
+                        <p>Для каждого рилса и карусели нужно описание — текст под постом.</p>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">3. Создание каруселей в getdraft.io</h3>
+                        <p><strong>Пошаговая работа:</strong></p>
+                        <ol style="margin-left: 20px;">
+                            <li>Открой ссылку на getdraft</li>
+                            <li>Выбери шаблон карусели</li>
+                            <li>Отредактируй заголовок (шрифт Jost)</li>
+                            <li>Подзаголовок не должен быть жирным</li>
+                            <li>Сохрани и скачай слайды</li>
+                        </ol>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">4. Создание рилсов в CapCut</h3>
+                        <p><strong>Пошаговая работа:</strong></p>
+                        <ol style="margin-left: 20px;">
+                            <li>Открой CapCut (десктоп или мобильный)</li>
+                            <li>Создай новый проект 9:16</li>
+                            <li>Загрузи исходное видео/фото</li>
+                            <li>Добавь текст-заголовок</li>
+                            <li>Используй шрифт из брендбука</li>
+                            <li>⚠️ Музыку в ролике отключить</li>
+                            <li>Экспортируй в максимальном качестве</li>
+                        </ol>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">5. Выкладка контента</h3>
+                        <ol style="margin-left: 20px;">
+                            <li>Сохрани файл: ДД.ММ.ГГГГ [номер] — [тип].mp4</li>
+                            <li>Отправь в Телеграм-группу проекта</li>
+                            <li>При наличии доступа к Instagram — выложи сам</li>
+                            <li>Добавь трендовую музыку в Instagram</li>
+                            <li>Отправь скриншот куратору</li>
+                            <li>Заполни отчёт в системе WorkInsight</li>
+                        </ol>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">6. Ежедневная отчётность</h3>
+                        <p>Каждый день до 21:00 сотрудник обязан:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Отправить скриншоты работы в Телеграм-группу</li>
+                            <li>Заполнить отчёт в системе WorkInsight (раздел «Отчёты»)</li>
+                        </ul>
+
+                        <div style="background: #D1FAE5; padding: 15px; border-left: 4px solid var(--success); border-radius: 4px; margin: 20px 0;">
+                            <strong>✅ Совет:</strong> Планируй контент наперёд, за 1–2 дня до публикации. Это даёт буфер для правок и снижает стресс.
+                        </div>
+
+                        <p style="margin-top: 20px; padding: 15px; background: #FEF3C7; border-left: 4px solid var(--warning); border-radius: 4px;">
+                            <strong>📞 Контакт куратора:</strong> <a href="https://t.me/Rubtsov_Alllex" target="_blank">https://t.me/Rubtsov_Alllex</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCESS (Admin only) -->
+            <div class="content-section" id="accessSection">
+                <div style="background: #FEE2E2; padding: 15px; border-left: 4px solid var(--danger); border-radius: 4px; margin-bottom: 20px;">
+                    <strong>⚠️ Конфиденциальные данные — только для руководителя</strong>
+                </div>
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Доступы к проектам</div>
+                        <div class="table-controls">
+                            <button class="btn-primary" id="addAccessBtn">+ Добавить доступ</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Проект</th>
+                                    <th>TG-группа</th>
+                                    <th>Логин</th>
+                                    <th>Пароль</th>
+                                    <th>Примечание</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accessTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ======================== MODALS ======================== -->
+
+<!-- Project Modal -->
+<div class="modal" id="projectModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать проект</div>
+        <form id="projectForm">
+            <div class="form-group">
+                <label>Название проекта *</label>
+                <input type="text" id="projectName" required>
+            </div>
+            <div class="form-group">
+                <label>Этап *</label>
+                <select id="projectStage" required>
+                    <option value="">Выберите этап</option>
+                    <option value="В работе">В работе</option>
+                    <option value="Проблемный">Проблемный</option>
+                    <option value="На паузе">На паузе</option>
+                    <option value="Готово">Готово</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ответственный *</label>
+                <select id="projectResponsible" required>
+                    <option value="">Выберите сотрудника</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Платформа *</label>
+                <select id="projectPlatform" required>
+                    <option value="">Выберите платформу</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="ВКонтакте">ВКонтакте</option>
+                    <option value="Телеграм">Телеграм</option>
+                    <option value="Instagram+ВК">Instagram+ВК</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Приоритет (1-10)</label>
+                <input type="number" id="projectPriority" min="1" max="10" value="5">
+            </div>
+            <div class="form-group">
+                <label>План рилсов</label>
+                <input type="number" id="projectPlanReels" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Сделано рилсов</label>
+                <input type="number" id="projectDoneReels" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Дата начала</label>
+                <input type="date" id="projectStartDate">
+            </div>
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea id="projectComment" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; width: 100%; min-height: 80px;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeProjectModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Task Modal -->
+<div class="modal" id="taskModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать задачу</div>
+        <form id="taskForm">
+            <div class="form-group">
+                <label>Проект *</label>
+                <select id="taskProject" required>
+                    <option value="">Выберите проект</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Задача *</label>
+                <input type="text" id="taskName" required>
+            </div>
+            <div class="form-group">
+                <label>Срок начала</label>
+                <input type="date" id="taskStartDate">
+            </div>
+            <div class="form-group">
+                <label>Срок окончания</label>
+                <input type="date" id="taskEndDate">
+            </div>
+            <div class="form-group">
+                <label>Ответственный *</label>
+                <select id="taskResponsible" required>
+                    <option value="">Выберите сотрудника</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Этап *</label>
+                <select id="taskStage" required>
+                    <option value="">Выберите этап</option>
+                    <option value="В работе">В работе</option>
+                    <option value="Ждёт">Ждёт</option>
+                    <option value="Готово">Готово</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea id="taskComment" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; width: 100%; min-height: 80px;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeTaskModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Employee Modal -->
+<div class="modal" id="employeeModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать сотрудника</div>
+        <form id="employeeForm">
+            <div class="form-group">
+                <label>Имя *</label>
+                <input type="text" id="employeeFirstName" required>
+            </div>
+            <div class="form-group">
+                <label>Фамилия</label>
+                <input type="text" id="employeeLastName">
+            </div>
+            <div class="form-group">
+                <label>Город *</label>
+                <input type="text" id="employeeCity" required>
+            </div>
+            <div class="form-group">
+                <label>Занятость *</label>
+                <select id="employeeEmployment" required>
+                    <option value="">Выберите</option>
+                    <option value="Работа">Работа</option>
+                    <option value="Учёба + работа">Учёба + работа</option>
+                    <option value="Свободен">Свободен</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Активные проекты</label>
+                <input type="text" id="employeeProjects" placeholder="Через запятую">
+            </div>
+            <div class="form-group">
+                <label>Статус *</label>
+                <select id="employeeStatus" required>
+                    <option value="">Выберите статус</option>
+                    <option value="Активен">Активен</option>
+                    <option value="НЕАктивен">НЕАктивен</option>
+                    <option value="Админ">Админ</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeEmployeeModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal" id="analyticsModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать запись аналитики</div>
+        <form id="analyticsForm">
+            <div class="form-group">
+                <label>Проект *</label>
+                <select id="analyticsProject" required>
+                    <option value="">Выберите проект</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ответственный *</label>
+                <select id="analyticsResponsible" required>
+                    <option value="">Выберите сотрудника</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Дата начала выкладки</label>
+                <input type="date" id="analyticsStartDate">
+            </div>
+            <div class="form-group">
+                <label>Просмотры</label>
+                <input type="number" id="analyticsViews" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Подписки</label>
+                <input type="number" id="analyticsSubs" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Всего подписчиков</label>
+                <input type="number" id="analyticsTotalSubs" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Взаимодействия</label>
+                <input type="number" id="analyticsInteractions" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Период</label>
+                <input type="text" id="analyticsPeriod" placeholder="01.01-31.01">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeAnalyticsModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Access Modal -->
+<div class="modal" id="accessModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать доступ</div>
+        <form id="accessForm">
+            <div class="form-group">
+                <label>Проект *</label>
+                <select id="accessProject" required>
+                    <option value="">Выберите проект</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ссылка на TG-группу</label>
+                <input type="text" id="accessTgLink" placeholder="https://t.me/...">
+            </div>
+            <div class="form-group">
+                <label>Логин / Email</label>
+                <input type="text" id="accessLogin">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="text" id="accessPassword">
+            </div>
+            <div class="form-group">
+                <label>Примечание</label>
+                <input type="text" id="accessNote">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeAccessModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ======================== STATE ========================
+    const state = {
+        currentUser: null,
+        userRole: null,
+        userEmail: null,
+        projects: [],
+        tasks: [],
+        employees: [],
+        analytics: [],
+        access: [],
+        reports: [],
+        users: []
+    };
+
+    // ======================== INITIALIZATION ========================
+    function initializeApp() {
+        loadDataFromLocalStorage();
+        if (!localStorage.getItem('workinsight_initialized')) {
+            loadInitialData();
+            localStorage.setItem('workinsight_initialized', 'true');
+        }
+        setupEventListeners();
+        renderDashboard();
+    }
+
+    function loadInitialData() {
+        // Projects
+        state.projects = [
+            {"id":1, "name":"Мужской бренд одежды", "stage":"Проблемный", "responsible":"Дима Кичигин", "platform":"Instagram+ВК", "priority":10, "planReels":60, "doneReels":26, "startDate":"", "comment":""},
+            {"id":2, "name":"Диски", "stage":"В работе", "responsible":"Дима Кичигин", "platform":"Instagram", "priority":5, "planReels":80, "doneReels":58, "startDate":"", "comment":""},
+            {"id":3, "name":"Товары оптом из Китая", "stage":"В работе", "responsible":"Дима Кичигин", "platform":"Instagram", "priority":5, "planReels":80, "doneReels":61, "startDate":"", "comment":""},
+            {"id":4, "name":"Картины по металлу", "stage":"В работе", "responsible":"Дима Кичигин", "platform":"Instagram", "priority":5, "planReels":80, "doneReels":39, "startDate":"", "comment":""},
+            {"id":5, "name":"Идилия капельницы", "stage":"В работе", "responsible":"Дима Кичигин", "platform":"Instagram", "priority":7, "planReels":80, "doneReels":0, "startDate":"2026-03-31", "comment":""},
+            {"id":6, "name":"Покер Москва", "stage":"В работе", "responsible":"Валера", "platform":"Instagram", "priority":8, "planReels":80, "doneReels":52, "startDate":"", "comment":""},
+            {"id":7, "name":"Покер Питер", "stage":"Готово", "responsible":"Александр Рубцов", "platform":"Instagram", "priority":5, "planReels":90, "doneReels":90, "startDate":"", "comment":"Выплачено"},
+            {"id":8, "name":"Баер из Китая", "stage":"Готово", "responsible":"Константин", "platform":"Instagram", "priority":3, "planReels":60, "doneReels":6, "startDate":"", "comment":"Отказ"},
+            {"id":9, "name":"Марафон по религии", "stage":"Готово", "responsible":"Дима Кичигин", "platform":"Instagram", "priority":8, "planReels":90, "doneReels":90, "startDate":"", "comment":"Выплачено"},
+            {"id":10, "name":"Авто в аренду Москва", "stage":"В работе", "responsible":"Артём", "platform":"Instagram", "priority":6, "planReels":90, "doneReels":0, "startDate":"", "comment":""},
+            {"id":11, "name":"Консалтинг ресторанов", "stage":"В работе", "responsible":"Дима Кичигин", "platform":"Instagram", "priority":6, "planReels":60, "doneReels":0, "startDate":"", "comment":""},
+            {"id":12, "name":"Клубника в шоколаде", "stage":"В работе", "responsible":"Александр Рубцов", "platform":"Instagram", "priority":5, "planReels":50, "doneReels":0, "startDate":"", "comment":""},
+            {"id":13, "name":"Студия рисования", "stage":"На паузе", "responsible":"Елена", "platform":"Instagram", "priority":4, "planReels":50, "doneReels":0, "startDate":"", "comment":""},
+            {"id":14, "name":"ИИ-тренер", "stage":"В работе", "responsible":"Александр Рубцов", "platform":"Instagram", "priority":9, "planReels":150, "doneReels":0, "startDate":"", "comment":"Только рилсы"}
+        ];
+
+        // Analytics
+        state.analytics = [
+            {"project":"Диски", "responsible":"Дима Кичигин", "startDate":"2026-03-11", "views":118870, "subs":24, "totalSubs":13, "interactions":286, "period":"11.03-30.03"},
+            {"project":"Картины по металлу", "responsible":"Дима Кичигин", "startDate":"2026-03-23", "views":31119, "subs":0, "totalSubs":0, "interactions":312, "period":"23.03-30.03"},
+            {"project":"Консалтинг ресторанов", "responsible":"Дима Кичигин", "startDate":"2026-02-17", "views":10395, "subs":0, "totalSubs":0, "interactions":37, "period":"17.02-30.03"},
+            {"project":"Марафон по религии", "responsible":"Дима Кичигин", "startDate":"2026-02-17", "views":178823, "subs":181, "totalSubs":87, "interactions":71, "period":"17.02-30.03"},
+            {"project":"Роллы, пицца, суши", "responsible":"Дима Кичигин", "startDate":"2026-02-10", "views":39371, "subs":5, "totalSubs":4, "interactions":76, "period":"10.02-30.03"}
+        ];
+
+        // Tasks
+        state.tasks = [
+            {"id":1, "project":"Все проекты", "task":"Создать чек-листы и прикрепить в таблицу + прописать комментарии", "startDate":"2026-02-04", "endDate":"2026-02-05", "responsible":"Александр Рубцов", "stage":"Готово", "comment":"Сделано!"},
+            {"id":2, "project":"Все проекты", "task":"Назначить ответственных и начать выкладку по всем активным проектам", "startDate":"2026-02-04", "endDate":"2026-02-15", "responsible":"Александр Рубцов", "stage":"Готово", "comment":"В процессе"},
+            {"id":3, "project":"Клубника в шоколаде", "task":"Найти оператора в Иркутске за 10 тыс. на 4-5 часов с камерой и светом", "startDate":"2026-02-04", "endDate":"2026-02-15", "responsible":"Александр Рубцов", "stage":"В работе", "comment":""},
+            {"id":4, "project":"Марафон по религии", "task":"Выплатить Насте за религию", "startDate":"2026-02-04", "endDate":"2026-02-15", "responsible":"Александр Рубцов", "stage":"Ждёт", "comment":"Ждёт Матвея"},
+            {"id":5, "project":"БАДы", "task":"Выплатить Диме за БАДы", "startDate":"2026-02-04", "endDate":"2026-02-15", "responsible":"Александр Рубцов", "stage":"Готово", "comment":""},
+            {"id":6, "project":"Консалтинг ресторанов", "task":"Поменять проект и поставить замену в ближайшее время", "startDate":"2026-02-12", "endDate":"2026-02-13", "responsible":"Александр Рубцов", "stage":"Готово", "comment":""}
+        ];
+
+        // Employees
+        state.employees = [
+            {"firstName":"Александр", "lastName":"Рубцов", "city":"Новоуральск", "employment":"Учёба + работа", "projects":"Девочка танцы", "status":"Админ"},
+            {"firstName":"Елена", "lastName":"", "city":"Новоуральск", "employment":"Работа", "projects":"Ресницы, Личный бренд дети", "status":"Активен"},
+            {"firstName":"Дима", "lastName":"Кичигин", "city":"Новоуральск", "employment":"Свободен", "projects":"Марафон, Консалтинг, Диски, Квизы", "status":"Активен"},
+            {"firstName":"Александр", "lastName":"", "city":"Москва", "employment":"Учёба + работа", "projects":"Риелтор Грозный, Цветы", "status":"Активен"},
+            {"firstName":"Артём", "lastName":"", "city":"Екатеринбург", "employment":"Учёба + работа", "projects":"Авто в аренду Москва", "status":"Активен"},
+            {"firstName":"Валера", "lastName":"", "city":"Новоуральск", "employment":"Свободен", "projects":"Покер Москва", "status":"Активен"},
+            {"firstName":"Виктор", "lastName":"Федосеев", "city":"Новоуральск", "employment":"Работа", "projects":"Обучение плаванию", "status":"НЕАктивен"},
+            {"firstName":"Константин", "lastName":"", "city":"", "employment":"", "projects":"", "status":"НЕАктивен"}
+        ];
+
+        // Access
+        state.access = [
+            {"project":"Покер Москва", "tgLink":"https://t.me/+95sY8wwOUvkwYWUy", "login":"poker.nuts.moscow", "password":"NutS1232123", "note":"2508507"},
+            {"project":"Авто в аренду Москва", "tgLink":"https://t.me/+L_NlJai8Um1mM2Yy", "login":"rescom_prokatmsk", "password":"rescomspb2021", "note":""},
+            {"project":"Личный бренд девочка танцы", "tgLink":"https://t.me/+JtqMzj_lKmYwNGM6", "login":"alex.queendance", "password":"Sasa2408", "note":""},
+            {"project":"Консалтинг ресторанов", "tgLink":"https://t.me/+LgoX66sDcMAzZWEy", "login":"dmitriy.rest", "password":"chef_dima97", "note":""}
+        ];
+
+        saveDataToLocalStorage();
+    }
+
+    function loadDataFromLocalStorage() {
+        const saved = localStorage.getItem('workinsight_data');
+        if (saved) {
+            const data = JSON.parse(saved);
+            state.projects = data.projects || state.projects;
+            state.tasks = data.tasks || state.tasks;
+            state.employees = data.employees || state.employees;
+            state.analytics = data.analytics || state.analytics;
+            state.access = data.access || state.access;
+            state.reports = data.reports || state.reports;
+            state.users = data.users || state.users;
+        }
+    }
+
+    function saveDataToLocalStorage() {
+        localStorage.setItem('workinsight_data', JSON.stringify({
+            projects: state.projects,
+            tasks: state.tasks,
+            employees: state.employees,
+            analytics: state.analytics,
+            access: state.access,
+            reports: state.reports,
+            users: state.users
+        }));
+    }
+
+    // ======================== AUTH FUNCTIONS ========================
+    function showLoginForm(e) {
+        e.preventDefault();
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+    }
+
+    function showRegisterForm(e) {
+        e.preventDefault();
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+    }
+
+    function validateEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+
+    function validatePhone(phone) {
+        const cleaned = phone.replace(/\D/g, '');
+        return cleaned.length >= 10;
+    }
+
+    function handleRegister() {
+        const email = document.getElementById('regEmail').value.trim();
+        const name = document.getElementById('regName').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+        // Clear errors
+        document.getElementById('emailError').style.display = 'none';
+        document.getElementById('phoneError').style.display = 'none';
+        document.getElementById('passwordError').style.display = 'none';
+
+        let hasError = false;
+
+        // Validate email
+        if (!email || !validateEmail(email)) {
+            document.getElementById('emailError').textContent = 'Введите корректный email';
+            document.getElementById('emailError').style.display = 'block';
+            hasError = true;
+        }
+
+        // Check email exists
+        if (state.users.find(u => u.email === email)) {
+            document.getElementById('emailError').textContent = 'Email уже зарегистрирован';
+            document.getElementById('emailError').style.display = 'block';
+            hasError = true;
+        }
+
+        // Validate name
+        if (!name) {
+            alert('Введите имя и фамилию');
+            hasError = true;
+        }
+
+        // Validate phone
+        if (!phone || !validatePhone(phone)) {
+            document.getElementById('phoneError').textContent = 'Введите корректный номер телефона';
+            document.getElementById('phoneError').style.display = 'block';
+            hasError = true;
+        }
+
+        // Validate password
+        if (password.length < 6) {
+            document.getElementById('passwordError').textContent = 'Пароль должен быть минимум 6 символов';
+            document.getElementById('passwordError').style.display = 'block';
+            hasError = true;
+        }
+
+        // Check passwords match
+        if (password !== passwordConfirm) {
+            document.getElementById('passwordError').textContent = 'Пароли не совпадают';
+            document.getElementById('passwordError').style.display = 'block';
+            hasError = true;
+        }
+
+        if (hasError) return;
+
+        // Register user
+        state.users.push({
+            email: email,
+            name: name,
+            phone: phone,
+            password: password,
+            role: 'employee',
+            createdAt: new Date().toISOString()
+        });
+
+        saveDataToLocalStorage();
+        showToast('✓ Аккаунт создан! Войдите с вашей почтой');
+
+        // Clear form
+        document.getElementById('regEmail').value = '';
+        document.getElementById('regName').value = '';
+        document.getElementById('regPhone').value = '';
+        document.getElementById('regPassword').value = '';
+        document.getElementById('regPasswordConfirm').value = '';
+
+        // Show login form
+        setTimeout(() => showLoginForm(new Event('click')), 1500);
+    }
+
+    function handleLogin() {
+        const input = document.getElementById('userName').value.trim();
+        const role = document.querySelector('.role-btn.active').dataset.role;
+
+        if (!input) {
+            alert('Введите email или имя');
+            return;
+        }
+
+        // Find user by email or name
+        let user = state.users.find(u => u.email === input || u.name === input);
+
+        if (user) {
+            // User registered - check password
+            const password = document.getElementById('userPassword').value;
+            if (password !== user.password) {
+                alert('Неверный пароль');
+                return;
+            }
+            state.currentUser = user.name;
+            state.userEmail = user.email;
+            state.userRole = 'employee';
+        } else {
+            // Guest or admin login
+            if (role === 'admin') {
+                const password = document.getElementById('userPassword').value;
+                if (password !== 'admin2026') {
+                    alert('Неверный пароль администратора');
+                    return;
+                }
+                state.currentUser = input;
+                state.userRole = 'admin';
+            } else {
+                // Allow guest login
+                state.currentUser = input;
+                state.userRole = 'employee';
+            }
+        }
+
+        // Login success
+        document.getElementById('loginScreen').classList.remove('active');
+        document.getElementById('appContainer').classList.remove('login-active');
+        document.getElementById('userName2').textContent = state.currentUser;
+        document.getElementById('userRole2').textContent = state.userRole === 'admin' ? 'Администратор' : 'Сотрудник';
+
+        // Show/hide sections based on role
+        const adminSection = document.getElementById('adminSection');
+        const analyticsItems = document.querySelectorAll('[data-section="analytics"]');
+
+        if (state.userRole === 'admin') {
+            adminSection.style.display = 'block';
+            analyticsItems.forEach(item => item.style.display = 'block');
+            document.querySelectorAll('.nav-item').forEach(item => item.style.display = 'flex');
+        } else {
+            adminSection.style.display = 'none';
+            analyticsItems.forEach(item => item.style.display = 'none');
+            document.querySelectorAll('[data-section="access"]').forEach(item => item.style.display = 'none');
+        }
+
+        renderDashboard();
+    }
+
+    // ======================== EVENT LISTENERS ========================
+    function setupEventListeners() {
+        // Login
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Show/hide password field based on role
+                const role = btn.dataset.role;
+                const passwordGroup = document.getElementById('passwordGroup');
+                if (role === 'admin') {
+                    passwordGroup.style.display = 'block';
+                } else {
+                    passwordGroup.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', handleLogin);
+        document.getElementById('registerBtn').addEventListener('click', handleRegister);
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            state.currentUser = null;
+            state.userRole = null;
+            state.userEmail = null;
+            document.getElementById('loginScreen').classList.add('active');
+            document.getElementById('appContainer').classList.add('login-active');
+            document.getElementById('userName').value = '';
+            document.getElementById('userPassword').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regName').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regPasswordConfirm').value = '';
+            showLoginForm(new Event('click'));
+            document.querySelector('.role-btn').click();
+        });
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                const section = item.dataset.section;
+                renderSection(section);
+            });
+        });
+
+        // Reports tabs
+        document.getElementById('newReportTab').addEventListener('click', () => {
+            document.getElementById('newReportForm').style.display = 'block';
+            document.getElementById('allReportsTable').style.display = 'none';
+            document.getElementById('newReportTab').style.background = 'var(--primary)';
+            document.getElementById('allReportsTab').style.background = 'var(--light-gray)';
+        });
+
+        document.getElementById('allReportsTab').addEventListener('click', () => {
+            document.getElementById('newReportForm').style.display = 'none';
+            document.getElementById('allReportsTable').style.display = 'block';
+            document.getElementById('newReportTab').style.background = 'var(--light-gray)';
+            document.getElementById('allReportsTab').style.background = 'var(--primary)';
+            renderReportsTable();
+        });
+
+        // Forms
+        document.getElementById('projectForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveProject();
+        });
+
+        document.getElementById('taskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveTask();
+        });
+
+        document.getElementById('employeeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveEmployee();
+        });
+
+        document.getElementById('analyticsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveAnalytics();
+        });
+
+        document.getElementById('accessForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveAccess();
+        });
+
+        document.getElementById('submitReportBtn').addEventListener('click', () => {
+            saveReport();
+        });
+
+        // Buttons
+        document.getElementById('addProjectBtn').addEventListener('click', openProjectModal);
+        document.getElementById('addTaskBtn').addEventListener('click', openTaskModal);
+        document.getElementById('addEmployeeBtn').addEventListener('click', openEmployeeModal);
+        document.getElementById('addAnalyticsBtn').addEventListener('click', openAnalyticsModal);
+        document.getElementById('addAccessBtn').addEventListener('click', openAccessModal);
+
+        // Modal closers
+        document.getElementById('closeProjectModal').addEventListener('click', () => {
+            document.getElementById('projectModal').classList.remove('active');
+            delete document.getElementById('projectForm').dataset.id;
+        });
+        document.getElementById('closeTaskModal').addEventListener('click', () => {
+            document.getElementById('taskModal').classList.remove('active');
+            delete document.getElementById('taskForm').dataset.id;
+        });
+        document.getElementById('closeEmployeeModal').addEventListener('click', () => {
+            document.getElementById('employeeModal').classList.remove('active');
+            delete document.getElementById('employeeForm').dataset.idx;
+        });
+        document.getElementById('closeAnalyticsModal').addEventListener('click', () => {
+            document.getElementById('analyticsModal').classList.remove('active');
+            delete document.getElementById('analyticsForm').dataset.idx;
+        });
+        document.getElementById('closeAccessModal').addEventListener('click', () => {
+            document.getElementById('accessModal').classList.remove('active');
+            delete document.getElementById('accessForm').dataset.idx;
+        });
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Submit forms with Enter key
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+    }
+
+    // ======================== RENDER FUNCTIONS ========================
+    function renderSection(section) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+
+        const titleMap = {
+            'dashboard': 'Дашборд',
+            'projects': 'Проекты',
+            'analytics': 'Аналитика',
+            'tasks': 'Задачи',
+            'employees': 'Сотрудники',
+            'reports': 'Отчёты',
+            'regulations': 'Регламент',
+            'guide': 'Гайд',
+            'access': 'Доступы'
+        };
+
+        document.getElementById('pageTitle').textContent = titleMap[section] || 'WorkInsight';
+        document.getElementById(section + 'Section').classList.add('active');
+
+        if (section === 'dashboard') {
+            renderDashboard();
+        } else if (section === 'projects') {
+            renderProjectsTable();
+        } else if (section === 'analytics') {
+            renderAnalyticsTable();
+            setTimeout(() => renderAnalyticsCharts(), 300);
+        } else if (section === 'tasks') {
+            renderTasksTable();
+        } else if (section === 'employees') {
+            renderEmployeesTable();
+        } else if (section === 'reports') {
+            renderReportsTable();
+        } else if (section === 'access') {
+            renderAccessTable();
+        }
+    }
+
+    function renderDashboard() {
+        // Filter projects based on user role
+        let projects = state.projects;
+        if (state.userRole === 'employee') {
+            projects = state.projects.filter(p => p.responsible === state.currentUser);
+        }
+
+        // Stats
+        const total = projects.length;
+        const active = projects.filter(p => p.stage === 'В работе').length;
+        const paused = projects.filter(p => p.stage === 'На паузе').length;
+        const done = projects.filter(p => p.stage === 'Готово').length;
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statActive').textContent = active;
+        document.getElementById('statPause').textContent = paused;
+        document.getElementById('statDone').textContent = done;
+
+        // Table
+        const tbody = document.getElementById('dashboardTable');
+        tbody.innerHTML = '';
+        projects.slice(0, 10).forEach(p => {
+            const percent = p.planReels > 0 ? Math.round((p.doneReels / p.planReels) * 100) : 0;
+            const progressClass = percent <= 33 ? 'low' : percent <= 66 ? 'medium' : percent < 100 ? 'high' : 'complete';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${p.responsible}</td>
+                    <td>${p.platform}</td>
+                    <td>${p.planReels}</td>
+                    <td>${p.doneReels}</td>
+                    <td>${percent}%</td>
+                    <td><div class="progress-bar"><div class="progress-fill ${progressClass}" style="width: ${percent}%"></div></div></td>
+                </tr>
+            `;
+        });
+
+        // Charts
+        setTimeout(() => {
+            renderDashboardCharts(projects);
+        }, 300);
+    }
+
+    function renderDashboardCharts(projects) {
+        if (!projects) projects = state.projects;
+
+        // Chart 1: Compare
+        const chartContext1 = document.getElementById('chartCompare');
+        if (chartContext1) {
+            if (window.compareChart) window.compareChart.destroy();
+            window.compareChart = new Chart(chartContext1, {
+                type: 'bar',
+                data: {
+                    labels: projects.slice(0, 5).map(p => p.name.substring(0, 15) + '...'),
+                    datasets: [
+                        {
+                            label: 'План',
+                            data: projects.slice(0, 5).map(p => p.planReels),
+                            backgroundColor: '#BFDBFE'
+                        },
+                        {
+                            label: 'Факт',
+                            data: projects.slice(0, 5).map(p => p.doneReels),
+                            backgroundColor: '#10B981'
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        // Chart 2: Stages
+        const chartContext2 = document.getElementById('chartStages');
+        if (chartContext2) {
+            if (window.stagesChart) window.stagesChart.destroy();
+            const stages = {};
+            projects.forEach(p => {
+                stages[p.stage] = (stages[p.stage] || 0) + 1;
+            });
+
+            window.stagesChart = new Chart(chartContext2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(stages),
+                    datasets: [{
+                        data: Object.values(stages),
+                        backgroundColor: ['#2563EB', '#F59E0B', '#EF4444', '#10B981']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+    }
+
+    function renderProjectsTable() {
+        const tbody = document.getElementById('projectsTable');
+        tbody.innerHTML = '';
+
+        // Filter projects based on user role
+        let projects = state.projects;
+        if (state.userRole === 'employee') {
+            projects = state.projects.filter(p => p.responsible === state.currentUser);
+        }
+
+        if (projects.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--gray);">Проектов нет. Создайте первый проект!</td></tr>';
+            return;
+        }
+
+        projects.forEach((p, idx) => {
+            const percent = p.planReels > 0 ? Math.round((p.doneReels / p.planReels) * 100) : 0;
+            const isOwner = p.responsible === state.currentUser || state.userRole === 'admin';
+            const actionButtons = isOwner ? `
+                <button class="btn-success" onclick="editProject(${p.id})">✏️</button>
+                <button class="btn-danger" onclick="deleteProject(${p.id})">🗑️</button>
+            ` : '—';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${p.name}</td>
+                    <td><span class="badge badge-${p.stage === 'Готово' ? 'success' : p.stage === 'Проблемный' ? 'danger' : 'primary'}">${p.stage}</span></td>
+                    <td>${p.responsible}</td>
+                    <td>${p.platform}</td>
+                    <td>${p.priority}</td>
+                    <td>${p.planReels}</td>
+                    <td>${p.doneReels}</td>
+                    <td>${percent}%</td>
+                    <td>${actionButtons}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderAnalyticsTable() {
+        const tbody = document.getElementById('analyticsTable');
+        tbody.innerHTML = '';
+
+        if (state.analytics.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray);">Записей аналитики нет.</td></tr>';
+            return;
+        }
+
+        state.analytics.forEach((a, idx) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${a.project}</td>
+                    <td>${a.responsible}</td>
+                    <td>${a.views.toLocaleString()}</td>
+                    <td>${a.subs}</td>
+                    <td>${a.interactions}</td>
+                    <td>${a.period}</td>
+                    <td>
+                        <button class="btn-success" onclick="editAnalytics(${idx})">✏️</button>
+                        <button class="btn-danger" onclick="deleteAnalytics(${idx})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderAnalyticsCharts() {
+        // Chart 1: Views
+        const chartContext1 = document.getElementById('chartViews');
+        if (chartContext1) {
+            if (window.viewsChart) window.viewsChart.destroy();
+            const sortedByViews = [...state.analytics].sort((a, b) => b.views - a.views).slice(0, 10);
+            window.viewsChart = new Chart(chartContext1, {
+                type: 'bar',
+                data: {
+                    labels: sortedByViews.map(a => a.project.substring(0, 12) + '...'),
+                    datasets: [{
+                        label: 'Просмотры',
+                        data: sortedByViews.map(a => a.views),
+                        backgroundColor: '#2563EB'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Chart 2: Interactions
+        const chartContext2 = document.getElementById('chartInteractions');
+        if (chartContext2) {
+            if (window.interactionsChart) window.interactionsChart.destroy();
+            const sortedByInteractions = [...state.analytics].sort((a, b) => b.interactions - a.interactions).slice(0, 10);
+            window.interactionsChart = new Chart(chartContext2, {
+                type: 'bar',
+                data: {
+                    labels: sortedByInteractions.map(a => a.project.substring(0, 12) + '...'),
+                    datasets: [{
+                        label: 'Взаимодействия',
+                        data: sortedByInteractions.map(a => a.interactions),
+                        backgroundColor: '#10B981'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    }
+
+    function renderTasksTable() {
+        const tbody = document.getElementById('tasksTable');
+        tbody.innerHTML = '';
+
+        if (state.tasks.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray);">Задач нет. Создайте первую задачу!</td></tr>';
+            return;
+        }
+
+        state.tasks.forEach((t, idx) => {
+            const badgeClass = t.stage === 'Готово' ? 'success' : t.stage === 'В работе' ? 'primary' : 'warning';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${t.project}</td>
+                    <td>${t.task}</td>
+                    <td>${t.endDate || '—'}</td>
+                    <td>${t.responsible}</td>
+                    <td><span class="badge badge-${badgeClass}">${t.stage}</span></td>
+                    <td>
+                        <button class="btn-success" onclick="editTask(${t.id})">✏️</button>
+                        <button class="btn-danger" onclick="deleteTask(${t.id})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderEmployeesTable() {
+        const tbody = document.getElementById('employeesTable');
+        tbody.innerHTML = '';
+
+        if (state.employees.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray);">Сотрудников нет. Добавьте первого сотрудника!</td></tr>';
+            return;
+        }
+
+        state.employees.forEach((e, idx) => {
+            const badgeClass = e.status === 'Активен' ? 'success' : e.status === 'Админ' ? 'primary' : 'danger';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${e.firstName} ${e.lastName}</td>
+                    <td>${e.city}</td>
+                    <td>${e.employment}</td>
+                    <td>${e.projects}</td>
+                    <td><span class="badge badge-${badgeClass}">${e.status}</span></td>
+                    <td>
+                        <button class="btn-success" onclick="editEmployee(${idx})">✏️</button>
+                        <button class="btn-danger" onclick="deleteEmployee(${idx})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderReportsTable() {
+        const tbody = document.getElementById('reportsListTable');
+        tbody.innerHTML = '';
+
+        if (state.reports.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray);">Отчётов нет. Создайте первый отчёт!</td></tr>';
+            return;
+        }
+
+        state.reports.forEach(r => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${r.date}</td>
+                    <td>${r.time}</td>
+                    <td>${r.user}</td>
+                    <td>${r.project}</td>
+                    <td>${r.reelsCreated}/${r.reelsPublished}</td>
+                    <td>${r.platforms}</td>
+                    <td>${r.comment || '—'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderAccessTable() {
+        const tbody = document.getElementById('accessTable');
+        tbody.innerHTML = '';
+
+        if (state.access.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray);">Доступов нет.</td></tr>';
+            return;
+        }
+
+        state.access.forEach((a, idx) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${a.project}</td>
+                    <td><a href="${a.tgLink}" target="_blank">TG-группа</a></td>
+                    <td>${a.login}</td>
+                    <td><span id="pwd${idx}">••••••</span> <button class="btn-secondary" onclick="togglePassword(${idx})">👁</button></td>
+                    <td>${a.note}</td>
+                    <td>
+                        <button class="btn-success" onclick="editAccess(${idx})">✏️</button>
+                        <button class="btn-danger" onclick="deleteAccess(${idx})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // ======================== MODAL FUNCTIONS ========================
+    function openProjectModal() {
+        document.getElementById('projectForm').reset();
+        delete document.getElementById('projectForm').dataset.id;
+        document.getElementById('projectModal').classList.add('active');
+        populateDropdown('projectResponsible', state.employees.map(e => e.firstName + ' ' + e.lastName));
+    }
+
+    function openTaskModal() {
+        document.getElementById('taskForm').reset();
+        delete document.getElementById('taskForm').dataset.id;
+        document.getElementById('taskModal').classList.add('active');
+        populateDropdown('taskProject', state.projects.map(p => p.name));
+        populateDropdown('taskResponsible', state.employees.map(e => e.firstName + ' ' + e.lastName));
+    }
+
+    function openEmployeeModal() {
+        document.getElementById('employeeForm').reset();
+        delete document.getElementById('employeeForm').dataset.idx;
+        document.getElementById('employeeModal').classList.add('active');
+    }
+
+    function openAnalyticsModal() {
+        document.getElementById('analyticsForm').reset();
+        delete document.getElementById('analyticsForm').dataset.idx;
+        document.getElementById('analyticsModal').classList.add('active');
+        populateDropdown('analyticsProject', state.projects.map(p => p.name));
+        populateDropdown('analyticsResponsible', state.employees.map(e => e.firstName + ' ' + e.lastName));
+    }
+
+    function openAccessModal() {
+        document.getElementById('accessForm').reset();
+        delete document.getElementById('accessForm').dataset.idx;
+        document.getElementById('accessModal').classList.add('active');
+        populateDropdown('accessProject', state.projects.map(p => p.name));
+    }
+
+    function populateDropdown(id, options) {
+        const select = document.getElementById(id);
+        if (!select) return;
+
+        const firstOptionHTML = select.querySelector('option:first-child');
+        select.innerHTML = '';
+
+        // Restore first option
+        if (firstOptionHTML) {
+            select.appendChild(firstOptionHTML.cloneNode(true));
+        }
+
+        // Add unique options
+        const uniqueOptions = [...new Set(options)].sort();
+        uniqueOptions.forEach(opt => {
+            if (opt.trim()) {
+                const option = document.createElement('option');
+                option.value = opt;
+                option.textContent = opt;
+                select.appendChild(option);
+            }
+        });
+    }
+
+    // ======================== SAVE FUNCTIONS ========================
+    function saveProject() {
+        const name = document.getElementById('projectName').value.trim();
+        const stage = document.getElementById('projectStage').value;
+        const responsible = document.getElementById('projectResponsible').value;
+        const platform = document.getElementById('projectPlatform').value;
+
+        if (!name || !stage || !responsible || !platform) {
+            alert('Заполните все обязательные поля');
+            return;
+        }
+
+        const id = document.getElementById('projectForm').dataset.id;
+        const project = {
+            id: id ? parseInt(id) : Math.max(...state.projects.map(p => p.id), 0) + 1,
+            name: name,
+            stage: stage,
+            responsible: responsible,
+            platform: platform,
+            priority: parseInt(document.getElementById('projectPriority').value),
+            planReels: parseInt(document.getElementById('projectPlanReels').value),
+            doneReels: parseInt(document.getElementById('projectDoneReels').value),
+            startDate: document.getElementById('projectStartDate').value,
+            comment: document.getElementById('projectComment').value
+        };
+
+        if (id) {
+            const idx = state.projects.findIndex(p => p.id === parseInt(id));
+            state.projects[idx] = project;
+        } else {
+            state.projects.push(project);
+        }
+
+        saveDataToLocalStorage();
+        document.getElementById('projectForm').reset();
+        delete document.getElementById('projectForm').dataset.id;
+        document.getElementById('projectModal').classList.remove('active');
+        renderProjectsTable();
+        showToast('Проект сохранён ✓');
+    }
+
+    function saveTask() {
+        const taskName = document.getElementById('taskName').value.trim();
+        const project = document.getElementById('taskProject').value;
+        const responsible = document.getElementById('taskResponsible').value;
+        const stage = document.getElementById('taskStage').value;
+
+        if (!taskName || !project || !responsible || !stage) {
+            alert('Заполните все обязательные поля');
+            return;
+        }
+
+        const id = document.getElementById('taskForm').dataset.id;
+        const task = {
+            id: id ? parseInt(id) : Math.max(...state.tasks.map(t => t.id), 0) + 1,
+            project: project,
+            task: taskName,
+            startDate: document.getElementById('taskStartDate').value,
+            endDate: document.getElementById('taskEndDate').value,
+            responsible: responsible,
+            stage: stage,
+            comment: document.getElementById('taskComment').value
+        };
+
+        if (id) {
+            const idx = state.tasks.findIndex(t => t.id === parseInt(id));
+            state.tasks[idx] = task;
+        } else {
+            state.tasks.push(task);
+        }
+
+        saveDataToLocalStorage();
+        document.getElementById('taskForm').reset();
+        delete document.getElementById('taskForm').dataset.id;
+        document.getElementById('taskModal').classList.remove('active');
+        renderTasksTable();
+        showToast('Задача сохранена ✓');
+    }
+
+    function saveEmployee() {
+        const firstName = document.getElementById('employeeFirstName').value.trim();
+        const city = document.getElementById('employeeCity').value.trim();
+        const employment = document.getElementById('employeeEmployment').value;
+        const status = document.getElementById('employeeStatus').value;
+
+        if (!firstName || !city || !employment || !status) {
+            alert('Заполните все обязательные поля');
+            return;
+        }
+
+        const idx = document.getElementById('employeeForm').dataset.idx;
+        const employee = {
+            firstName: firstName,
+            lastName: document.getElementById('employeeLastName').value,
+            city: city,
+            employment: employment,
+            projects: document.getElementById('employeeProjects').value,
+            status: status
+        };
+
+        if (idx !== undefined) {
+            state.employees[parseInt(idx)] = employee;
+        } else {
+            state.employees.push(employee);
+        }
+
+        saveDataToLocalStorage();
+        document.getElementById('employeeForm').reset();
+        delete document.getElementById('employeeForm').dataset.idx;
+        document.getElementById('employeeModal').classList.remove('active');
+        renderEmployeesTable();
+        showToast('Сотрудник сохранён ✓');
+    }
+
+    function saveAnalytics() {
+        const project = document.getElementById('analyticsProject').value;
+        const responsible = document.getElementById('analyticsResponsible').value;
+
+        if (!project || !responsible) {
+            alert('Заполните все обязательные поля');
+            return;
+        }
+
+        const idx = document.getElementById('analyticsForm').dataset.idx;
+        const analytics = {
+            project: project,
+            responsible: responsible,
+            startDate: document.getElementById('analyticsStartDate').value,
+            views: parseInt(document.getElementById('analyticsViews').value) || 0,
+            subs: parseInt(document.getElementById('analyticsSubs').value) || 0,
+            totalSubs: parseInt(document.getElementById('analyticsTotalSubs').value) || 0,
+            interactions: parseInt(document.getElementById('analyticsInteractions').value) || 0,
+            period: document.getElementById('analyticsPeriod').value
+        };
+
+        if (idx !== undefined) {
+            state.analytics[parseInt(idx)] = analytics;
+        } else {
+            state.analytics.push(analytics);
+        }
+
+        saveDataToLocalStorage();
+        document.getElementById('analyticsForm').reset();
+        delete document.getElementById('analyticsForm').dataset.idx;
+        document.getElementById('analyticsModal').classList.remove('active');
+        renderAnalyticsTable();
+        showToast('Запись аналитики сохранена ✓');
+    }
+
+    function saveAccess() {
+        const project = document.getElementById('accessProject').value;
+
+        if (!project) {
+            alert('Выберите проект');
+            return;
+        }
+
+        const idx = document.getElementById('accessForm').dataset.idx;
+        const access = {
+            project: project,
+            tgLink: document.getElementById('accessTgLink').value,
+            login: document.getElementById('accessLogin').value,
+            password: document.getElementById('accessPassword').value,
+            note: document.getElementById('accessNote').value
+        };
+
+        if (idx !== undefined) {
+            state.access[parseInt(idx)] = access;
+        } else {
+            state.access.push(access);
+        }
+
+        saveDataToLocalStorage();
+        document.getElementById('accessForm').reset();
+        delete document.getElementById('accessForm').dataset.idx;
+        document.getElementById('accessModal').classList.remove('active');
+        renderAccessTable();
+        showToast('Доступ сохранён ✓');
+    }
+
+    function saveReport() {
+        const project = document.getElementById('reportProject').value;
+        const date = document.getElementById('reportDate').value;
+
+        if (!project || !date) {
+            alert('Заполните обязательные поля: проект и дата');
+            return;
+        }
+
+        const platforms = Array.from(document.querySelectorAll('.reportPlatform:checked')).map(cb => cb.value).join(', ') || 'Не выбрано';
+
+        const report = {
+            date: date,
+            time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+            user: state.currentUser,
+            project: project,
+            reelsCreated: parseInt(document.getElementById('reportReelsCreated').value) || 0,
+            reelsPublished: parseInt(document.getElementById('reportReelsPublished').value) || 0,
+            platforms: platforms,
+            comment: document.getElementById('reportComment').value
+        };
+
+        state.reports.push(report);
+        saveDataToLocalStorage();
+
+        // Reset form
+        document.getElementById('reportProject').value = '';
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('reportDate').value = today;
+        document.getElementById('reportReelsCreated').value = '0';
+        document.getElementById('reportReelsPublished').value = '0';
+        document.querySelectorAll('.reportPlatform').forEach(cb => cb.checked = false);
+        document.getElementById('reportComment').value = '';
+
+        renderReportsTable();
+        showToast('Отчёт отправлен ✓');
+    }
+
+    // ======================== DELETE FUNCTIONS ========================
+    function deleteProject(id) {
+        if (confirm('Удалить проект?')) {
+            state.projects = state.projects.filter(p => p.id !== id);
+            saveDataToLocalStorage();
+            renderProjectsTable();
+            showToast('Проект удалён');
+        }
+    }
+
+    function deleteTask(id) {
+        if (confirm('Удалить задачу?')) {
+            state.tasks = state.tasks.filter(t => t.id !== id);
+            saveDataToLocalStorage();
+            renderTasksTable();
+            showToast('Задача удалена');
+        }
+    }
+
+    function deleteEmployee(idx) {
+        if (confirm('Удалить сотрудника?')) {
+            state.employees.splice(idx, 1);
+            saveDataToLocalStorage();
+            renderEmployeesTable();
+            showToast('Сотрудник удалён');
+        }
+    }
+
+    function deleteAnalytics(idx) {
+        if (confirm('Удалить запись?')) {
+            state.analytics.splice(idx, 1);
+            saveDataToLocalStorage();
+            renderAnalyticsTable();
+            showToast('Запись удалена');
+        }
+    }
+
+    function deleteAccess(idx) {
+        if (confirm('Удалить доступ?')) {
+            state.access.splice(idx, 1);
+            saveDataToLocalStorage();
+            renderAccessTable();
+            showToast('Доступ удалён');
+        }
+    }
+
+    // ======================== EDIT FUNCTIONS ========================
+    function editProject(id) {
+        const project = state.projects.find(p => p.id === id);
+        document.getElementById('projectForm').dataset.id = id;
+        document.getElementById('projectName').value = project.name;
+        document.getElementById('projectStage').value = project.stage;
+        document.getElementById('projectResponsible').value = project.responsible;
+        document.getElementById('projectPlatform').value = project.platform;
+        document.getElementById('projectPriority').value = project.priority;
+        document.getElementById('projectPlanReels').value = project.planReels;
+        document.getElementById('projectDoneReels').value = project.doneReels;
+        document.getElementById('projectStartDate').value = project.startDate;
+        document.getElementById('projectComment').value = project.comment;
+        populateDropdown('projectResponsible', state.employees.map(e => e.firstName + ' ' + e.lastName));
+        document.getElementById('projectModal').classList.add('active');
+    }
+
+    function editTask(id) {
+        const task = state.tasks.find(t => t.id === id);
+        document.getElementById('taskForm').dataset.id = id;
+        document.getElementById('taskName').value = task.task;
+        document.getElementById('taskProject').value = task.project;
+        document.getElementById('taskStartDate').value = task.startDate;
+        document.getElementById('taskEndDate').value = task.endDate;
+        document.getElementById('taskResponsible').value = task.responsible;
+        document.getElementById('taskStage').value = task.stage;
+        document.getElementById('taskComment').value = task.comment;
+        populateDropdown('taskProject', state.projects.map(p => p.name));
+        populateDropdown('taskResponsible', state.employees.map(e => e.firstName + ' ' + e.lastName));
+        document.getElementById('taskModal').classList.add('active');
+    }
+
+    function editEmployee(idx) {
+        const emp = state.employees[idx];
+        document.getElementById('employeeForm').dataset.idx = idx;
+        document.getElementById('employeeFirstName').value = emp.firstName;
+        document.getElementById('employeeLastName').value = emp.lastName;
+        document.getElementById('employeeCity').value = emp.city;
+        document.getElementById('employeeEmployment').value = emp.employment;
+        document.getElementById('employeeProjects').value = emp.projects;
+        document.getElementById('employeeStatus').value = emp.status;
+        document.getElementById('employeeModal').classList.add('active');
+    }
+
+    function editAnalytics(idx) {
+        const a = state.analytics[idx];
+        document.getElementById('analyticsForm').dataset.idx = idx;
+        document.getElementById('analyticsProject').value = a.project;
+        document.getElementById('analyticsResponsible').value = a.responsible;
+        document.getElementById('analyticsStartDate').value = a.startDate;
+        document.getElementById('analyticsViews').value = a.views;
+        document.getElementById('analyticsSubs').value = a.subs;
+        document.getElementById('analyticsTotalSubs').value = a.totalSubs;
+        document.getElementById('analyticsInteractions').value = a.interactions;
+        document.getElementById('analyticsPeriod').value = a.period;
+        populateDropdown('analyticsProject', state.projects.map(p => p.name));
+        populateDropdown('analyticsResponsible', state.employees.map(e => e.firstName + ' ' + e.lastName));
+        document.getElementById('analyticsModal').classList.add('active');
+    }
+
+    function editAccess(idx) {
+        const a = state.access[idx];
+        document.getElementById('accessForm').dataset.idx = idx;
+        document.getElementById('accessProject').value = a.project;
+        document.getElementById('accessTgLink').value = a.tgLink;
+        document.getElementById('accessLogin').value = a.login;
+        document.getElementById('accessPassword').value = a.password;
+        document.getElementById('accessNote').value = a.note;
+        populateDropdown('accessProject', state.projects.map(p => p.name));
+        document.getElementById('accessModal').classList.add('active');
+    }
+
+    // ======================== UTILITY FUNCTIONS ========================
+    function formatDate(dateString) {
+        if (!dateString) return '—';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+
+    function togglePassword(idx) {
+        const pwd = document.getElementById('pwd' + idx);
+        if (pwd.textContent === '••••••') {
+            pwd.textContent = state.access[idx].password;
+        } else {
+            pwd.textContent = '••••••';
+        }
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    // ======================== FILTER/SEARCH FUNCTION ========================
+    function filterTable(input, tableId) {
+        const query = (input.value || '').toLowerCase().trim();
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        const rows = Array.from(table.getElementsByTagName('tr'));
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            // Skip empty rows
+            if (row.classList.contains('empty-row')) {
+                row.remove();
+                return;
+            }
+
+            if (query === '') {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+
+        // Show empty state if needed
+        if (visibleCount === 0 && query !== '') {
+            const emptyRow = document.createElement('tr');
+            emptyRow.classList.add('empty-row');
+            const colCount = table.querySelector('tr')?.children.length || 10;
+            emptyRow.innerHTML = `<td colspan="${colCount}" style="text-align: center; padding: 30px; color: var(--gray);">Ничего не найдено</td>`;
+            table.appendChild(emptyRow);
+        }
+    }
+
+    // ======================== EXPORT CSV FUNCTION ========================
+    function exportCSV(tableId, filename) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        let csv = [];
+        const rows = table.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            const cols = row.querySelectorAll('td, th');
+            const csvRow = [];
+            cols.forEach(col => {
+                csvRow.push('"' + col.innerText.replace(/"/g, '""') + '"');
+            });
+            csv.push(csvRow.join(','));
+        });
+
+        const csvContent = csv.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename || 'export.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', initializeApp);
+
+    // Set today's date for report and populate projects
+    window.addEventListener('load', () => {
+        const today = new Date().toISOString().split('T')[0];
+        const reportDateInput = document.getElementById('reportDate');
+        if (reportDateInput && !reportDateInput.value) {
+            reportDateInput.value = today;
+        }
+
+        // Populate report projects
+        const reportProjectSelect = document.getElementById('reportProject');
+        if (reportProjectSelect) {
+            const activeProjects = state.projects.filter(p => p.stage === 'В работе');
+            activeProjects.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.name;
+                option.textContent = p.name;
+                reportProjectSelect.appendChild(option);
+            });
+        }
+    });
+</script>
+
+<style>
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+</body>
+</html>
