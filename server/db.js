@@ -1,12 +1,76 @@
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, '..', 'workinsight.db'));
+const DB_PATH = path.join(__dirname, '..', 'workinsight.db');
 
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// Thin synchronous wrapper around sql.js to mimic better-sqlite3 API
+// so routes don't need to change
+class SyncDB {
+    constructor(sqlDb) {
+        this._db = sqlDb;
+    }
 
-function initDatabase() {
+    pragma(str) {
+        this._db.run(`PRAGMA ${str}`);
+    }
+
+    exec(sql) {
+        this._db.run(sql);
+        this._persist();
+    }
+
+    prepare(sql) {
+        const self = this;
+        return {
+            run(...args) {
+                const stmt = self._db.prepare(sql);
+                stmt.run(args);
+                stmt.free();
+                const lastId = self._db.exec('SELECT last_insert_rowid()')[0]?.values[0][0] ?? null;
+                self._persist();
+                return { lastInsertRowid: lastId, changes: self._db.getRowsModified() };
+            },
+            get(...args) {
+                const stmt = self._db.prepare(sql);
+                stmt.bind(args);
+                const row = stmt.step() ? stmt.getAsObject() : undefined;
+                stmt.free();
+                return row;
+            },
+            all(...args) {
+                const stmt = self._db.prepare(sql);
+                stmt.bind(args);
+                const rows = [];
+                while (stmt.step()) rows.push(stmt.getAsObject());
+                stmt.free();
+                return rows;
+            }
+        };
+    }
+
+    _persist() {
+        const data = this._db.export();
+        fs.writeFileSync(DB_PATH, Buffer.from(data));
+    }
+}
+
+let db = null;
+
+async function initDatabase() {
+    const SQL = await initSqlJs();
+
+    let sqlDb;
+    if (fs.existsSync(DB_PATH)) {
+        const fileBuffer = fs.readFileSync(DB_PATH);
+        sqlDb = new SQL.Database(fileBuffer);
+    } else {
+        sqlDb = new SQL.Database();
+    }
+
+    db = new SyncDB(sqlDb);
+    module.exports.db._real = db; // wire up the lazy proxy
+
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,6 +169,22 @@ function initDatabase() {
     `);
 
     console.log('✓ Database initialized');
+    return db;
 }
 
-module.exports = { db, initDatabase };
+function getDb() {
+    if (!db) throw new Error('Database not initialized');
+    return db;
+}
+
+// Lazy proxy — routes can do `const { db } = require('../db')` safely
+// because db is initialized before any request arrives
+const db = new Proxy({}, {
+    get(_, prop) {
+        if (!db._real) throw new Error('DB not initialized');
+        const val = db._real[prop];
+        return typeof val === 'function' ? val.bind(db._real) : val;
+    }
+});
+
+module.exports = { initDatabase, getDb, db };
