@@ -17,3 +17,7 @@ Thumbs.db
 # Local development
 .env
 .env.local
+
+# Database
+*.db
+*.db-journal
