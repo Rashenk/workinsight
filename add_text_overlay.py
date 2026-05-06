@@ -223,7 +223,7 @@ def add_overlay_to_video(input_path, output_path, overlay_image):
             '-i', overlay_png,                   # Overlay image
             '-filter_complex', '[0:v][1:v]overlay=0:0[v]',  # Overlay on top
             '-map', '[v]',                       # Use overlaid video
-            '-map', '0:a',                       # Keep original audio
+            '-map', '0:a?',                      # Keep original audio (optional, handles videos without audio)
             '-c:v', 'libx264',                   # Video codec
             '-c:a', 'aac',                       # Audio codec
             '-y',                                # Overwrite output
