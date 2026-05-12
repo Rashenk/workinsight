@@ -1,0 +1,126 @@
+// Authentication functions
+
+async function handleLogin() {
+  const emailInput = document.getElementById('userName');
+  const passwordInput = document.getElementById('userPassword');
+  const selectedRole = document.querySelector('.role-btn.active')?.dataset.role;
+
+  if (!emailInput.value || !passwordInput.value) {
+    showToast('Введите email и пароль', 'error');
+    return;
+  }
+
+  try {
+    const result = await api.post('/auth/login', {
+      email: emailInput.value,
+      password: passwordInput.value
+    });
+
+    if (!result) return;
+
+    state.setUser(result.user, result.token);
+    hideLoginScreen();
+    loadAppData();
+  } catch (error) {
+    showToast('Ошибка входа: ' + error.message, 'error');
+  }
+}
+
+async function handleRegister() {
+  const emailInput = document.getElementById('regEmail');
+  const nameInput = document.getElementById('regName');
+  const phoneInput = document.getElementById('regPhone');
+  const passwordInput = document.getElementById('regPassword');
+  const passwordConfirmInput = document.getElementById('regPasswordConfirm');
+
+  const email = emailInput.value.trim();
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+  const password = passwordInput.value;
+  const passwordConfirm = passwordConfirmInput.value;
+
+  if (!email || !name || !password) {
+    showToast('Заполните обязательные поля', 'error');
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    showToast('Пароли не совпадают', 'error');
+    return;
+  }
+
+  if (password.length < 6) {
+    showToast('Пароль должен быть минимум 6 символов', 'error');
+    return;
+  }
+
+  try {
+    const result = await api.post('/auth/register', {
+      email,
+      name,
+      phone,
+      password,
+      passwordConfirm
+    });
+
+    if (!result) return;
+
+    state.setUser(result.user, result.token);
+    hideLoginScreen();
+    loadAppData();
+  } catch (error) {
+    showToast('Ошибка регистрации: ' + error.message, 'error');
+  }
+}
+
+function logout() {
+  state.logout();
+  showLoginScreen();
+  document.getElementById('userName').value = '';
+  document.getElementById('userPassword').value = '';
+}
+
+function showLoginScreen() {
+  const loginScreen = document.getElementById('loginScreen');
+  const appContainer = document.getElementById('appContainer');
+  loginScreen.classList.add('active');
+  appContainer.style.display = 'none';
+  showLoginForm();
+}
+
+function hideLoginScreen() {
+  const loginScreen = document.getElementById('loginScreen');
+  const appContainer = document.getElementById('appContainer');
+  loginScreen.classList.remove('active');
+  appContainer.style.display = 'flex';
+}
+
+function showLoginForm(event) {
+  if (event) event.preventDefault();
+  document.getElementById('loginForm').style.display = 'flex';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('passwordGroup').style.display = 'none';
+}
+
+function showRegisterForm(event) {
+  if (event) event.preventDefault();
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'flex';
+}
+
+// Role selector
+document.addEventListener('DOMContentLoaded', () => {
+  const roleBtns = document.querySelectorAll('.role-btn');
+  roleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      roleBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // For now, admin login uses special handling
+      if (btn.dataset.role === 'admin') {
+        document.getElementById('passwordGroup').style.display = 'block';
+      } else {
+        document.getElementById('passwordGroup').style.display = 'none';
+      }
+    });
+  });
+});

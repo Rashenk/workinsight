@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkInsight - SMM Management System</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ======================== LOGIN SCREEN ======================== -->
+<div class="login-screen active" id="loginScreen">
+    <div class="login-card">
+        <div class="login-logo">
+            <h1>WorkInsight</h1>
+            <p>SMM Management System</p>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div class="login-form" id="loginForm">
+            <div>
+                <label style="margin-bottom: 10px; display: block;">Выберите роль:</label>
+                <div class="role-selector">
+                    <button class="role-btn active" data-role="employee" type="button">👥 Сотрудник</button>
+                    <button class="role-btn" data-role="admin" type="button">🔐 Администратор</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Email или имя *</label>
+                <input type="text" id="userName" placeholder="введите email или имя">
+            </div>
+
+            <div class="form-group" id="passwordGroup" style="display: none;">
+                <label>Пароль *</label>
+                <input type="password" id="userPassword" placeholder="Введите пароль">
+            </div>
+
+            <button class="login-btn" id="loginBtn" type="button">Войти</button>
+            <p style="text-align: center; margin-top: 15px; color: var(--gray); font-size: 14px;">
+                Нет аккаунта? <a href="#" onclick="showRegisterForm(event)" style="color: var(--primary); cursor: pointer; text-decoration: none;">Зарегистрироваться</a>
+            </p>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div class="login-form" id="registerForm" style="display: none;">
+            <h3 style="margin-bottom: 20px; text-align: center; color: var(--dark);">Регистрация</h3>
+
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="regEmail" placeholder="example@mail.com">
+                <small id="emailError" style="color: var(--danger); display: none;"></small>
+            </div>
+
+            <div class="form-group">
+                <label>Имя Фамилия *</label>
+                <input type="text" id="regName" placeholder="Введите имя и фамилию">
+            </div>
+
+            <div class="form-group">
+                <label>Номер телефона *</label>
+                <input type="tel" id="regPhone" placeholder="+7 (XXX) XXX-XX-XX">
+                <small id="phoneError" style="color: var(--danger); display: none;"></small>
+            </div>
+
+            <div class="form-group">
+                <label>Пароль *</label>
+                <input type="password" id="regPassword" placeholder="Минимум 6 символов">
+                <small style="color: var(--gray);">Минимум 6 символов</small>
+            </div>
+
+            <div class="form-group">
+                <label>Подтвердите пароль *</label>
+                <input type="password" id="regPasswordConfirm" placeholder="Повторите пароль">
+                <small id="passwordError" style="color: var(--danger); display: none;"></small>
+            </div>
+
+            <button class="login-btn" id="registerBtn" type="button">Зарегистрироваться</button>
+            <p style="text-align: center; margin-top: 15px; color: var(--gray); font-size: 14px;">
+                Уже есть аккаунт? <a href="#" onclick="showLoginForm(event)" style="color: var(--primary); cursor: pointer; text-decoration: none;">Войти</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ======================== MAIN APP ======================== -->
+<div class="app-container" id="appContainer">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-chart-line"></i> WorkInsight
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-item active" data-section="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Дашборд</span>
+            </div>
+            <div class="nav-item" data-section="projects">
+                <i class="fas fa-list-check"></i>
+                <span>Проекты</span>
+            </div>
+            <div class="nav-item" data-section="analytics">
+                <i class="fas fa-chart-bar"></i>
+                <span>Аналитика</span>
+            </div>
+            <div class="nav-item" data-section="tasks">
+                <i class="fas fa-tasks"></i>
+                <span>Задачи</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Команда</div>
+            <div class="nav-item" data-section="employees">
+                <i class="fas fa-users"></i>
+                <span>Сотрудники</span>
+            </div>
+            <div class="nav-item" data-section="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Отчёты</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Документация</div>
+            <div class="nav-item" data-section="regulations">
+                <i class="fas fa-book"></i>
+                <span>Регламент</span>
+            </div>
+            <div class="nav-item" data-section="guide">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Гайд</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-label">Финансы</div>
+            <div class="nav-item" data-section="finance">
+                <i class="fas fa-chart-line"></i>
+                <span>Финансы</span>
+            </div>
+        </div>
+
+        <div class="nav-section" id="adminSection" style="display: none;">
+            <div class="nav-label">Администратор</div>
+            <div class="nav-item" data-section="access">
+                <i class="fas fa-key"></i>
+                <span>Доступы</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-title" id="pageTitle">Дашборд</div>
+            <div class="header-user">
+                <div>
+                    <div id="userName2" style="font-weight: 600;"></div>
+                    <div class="user-role" id="userRole2"></div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">Выход</button>
+            </div>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div class="content">
+
+            <!-- DASHBOARD -->
+            <div class="content-section active" id="dashboardSection">
+                <h2 style="margin-bottom: 20px;">Обзор проектов</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Всего проектов</div>
+                        <div class="stat-value" id="statTotal">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--primary);">
+                        <div class="stat-label">В работе</div>
+                        <div class="stat-value" id="statActive">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--warning);">
+                        <div class="stat-label">На паузе</div>
+                        <div class="stat-value" id="statPause">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--success);">
+                        <div class="stat-label">Готово</div>
+                        <div class="stat-value" id="statDone">0</div>
+                    </div>
+                </div>
+
+                <div class="table-section" style="margin-bottom: 30px;">
+                    <div class="table-header">
+                        <div class="table-title">Проекты в работе</div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Проект</th>
+                                    <th>Ответственный</th>
+                                    <th>Платформа</th>
+                                    <th>План</th>
+                                    <th>Сделано</th>
+                                    <th>%</th>
+                                    <th>Прогресс</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">План vs Факт</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartCompare"></canvas>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">По этапам</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartStages"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROJECTS -->
+            <div class="content-section" id="projectsSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Все проекты</div>
+                        <div class="table-controls">
+                            <select id="projectFilterStage" onchange="applyProjectFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                                <option value="">По этапу: Все</option>
+                                <option value="В работе">В работе</option>
+                                <option value="Проблемный">Проблемный</option>
+                                <option value="На паузе">На паузе</option>
+                                <option value="Готово">Готово</option>
+                            </select>
+                            <select id="projectFilterResponsible" onchange="applyProjectFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                                <option value="">По ответственному: Все</option>
+                            </select>
+                            <input type="text" class="search-input" id="projectSearch" placeholder="Поиск..." oninput="filterTable(this, 'projectsTable')">
+                            <button class="btn-secondary" onclick="exportCSV('projectsTable', 'projects.csv')">📥 Экспорт CSV</button>
+                            <button class="btn-primary" id="addProjectBtn">+ Добавить проект</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Название</th>
+                                    <th>Этап</th>
+                                    <th>Ответственный</th>
+                                    <th>Платформа</th>
+                                    <th>План</th>
+                                    <th>Сделано</th>
+                                    <th>%</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectsTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANALYTICS -->
+            <div class="content-section" id="analyticsSection">
+                <h2 style="margin-bottom: 20px;">Аналитика проектов</h2>
+                <div class="table-section" style="margin-bottom: 30px;">
+                    <div class="table-header">
+                        <div class="table-title">Данные аналитики</div>
+                        <div class="table-controls">
+                            <button class="btn-secondary" onclick="exportCSV('analyticsTable', 'analytics.csv')">📥 Экспорт CSV</button>
+                            <button class="btn-primary" id="addAnalyticsBtn">+ Добавить запись</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Проект</th>
+                                    <th>Ответственный</th>
+                                    <th>Просмотры</th>
+                                    <th>Подписки</th>
+                                    <th>Взаимодействия</th>
+                                    <th>Период</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analyticsTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Просмотры по проектам (топ-10)</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartViews"></canvas>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Взаимодействия по проектам</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartInteractions"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TASKS -->
+            <div class="content-section" id="tasksSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Задачи</div>
+                        <div class="table-controls">
+                            <select id="taskFilterStage" onchange="applyTaskFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                                <option value="">По этапу: Все</option>
+                                <option value="В работе">В работе</option>
+                                <option value="Ждёт">Ждёт</option>
+                                <option value="Готово">Готово</option>
+                            </select>
+                            <input type="text" class="search-input" id="taskSearch" placeholder="Поиск..." oninput="filterTable(this, 'tasksTable')">
+                            <button class="btn-secondary" onclick="exportCSV('tasksTable', 'tasks.csv')">📥 Экспорт CSV</button>
+                            <button class="btn-primary" id="addTaskBtn">+ Добавить задачу</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Проект</th>
+                                    <th>Задача</th>
+                                    <th>Срок</th>
+                                    <th>Ответственный</th>
+                                    <th>Этап</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasksTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMPLOYEES -->
+            <div class="content-section" id="employeesSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Сотрудники</div>
+                        <div class="table-controls">
+                            <input type="text" class="search-input" id="employeeSearch" placeholder="Поиск..." oninput="filterTable(this, 'employeesTable')">
+                            <button class="btn-secondary" onclick="exportCSV('employeesTable', 'employees.csv')">📥 Экспорт CSV</button>
+                            <button class="btn-primary" id="addEmployeeBtn">+ Добавить сотрудника</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Имя</th>
+                                    <th>Город</th>
+                                    <th>Занятость</th>
+                                    <th>Проекты</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REPORTS -->
+            <div class="content-section" id="reportsSection">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn-primary" id="newReportTab" style="background: var(--primary); color: white; border: none;">📝 Новый отчёт</button>
+                    <button class="btn-secondary" id="allReportsTab">📋 Все отчёты</button>
+                </div>
+
+                <!-- New Report Form -->
+                <div id="newReportForm">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Создать новый отчёт</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div class="form-group">
+                                <label>Проект *</label>
+                                <select id="reportProject">
+                                    <option value="">Выберите проект</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Дата *</label>
+                                <input type="date" id="reportDate">
+                            </div>
+                            <div class="form-group">
+                                <label>Рилсов сделано</label>
+                                <input type="number" id="reportReelsCreated" value="0" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Рилсов выложено</label>
+                                <input type="number" id="reportReelsPublished" value="0" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Платформы</label>
+                                <div style="display: flex; gap: 15px;">
+                                    <label><input type="checkbox" class="reportPlatform" value="Instagram"> Instagram</label>
+                                    <label><input type="checkbox" class="reportPlatform" value="VK"> ВКонтакте</label>
+                                    <label><input type="checkbox" class="reportPlatform" value="Telegram"> Телеграм</label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Комментарий</label>
+                                <textarea id="reportComment" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; width: 100%; min-height: 100px;"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Скриншот работы</label>
+                                <input type="file" id="reportScreenshot" accept="image/*" onchange="previewScreenshot(this)">
+                                <div id="screenshotPreview" style="margin-top: 10px;"></div>
+                            </div>
+                            <button class="btn-primary" id="submitReportBtn">Отправить отчёт</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Reports Table -->
+                <div id="allReportsTable" style="display: none;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Все отчёты</div>
+                        </div>
+                        <div style="padding: 15px 20px; background: #F9FAFB; border-bottom: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <label style="font-size: 12px; font-weight: 600; color: var(--gray); text-transform: uppercase;">Фильтры:</label>
+                            <input type="date" id="reportFilterDateFrom" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <input type="date" id="reportFilterDateTo" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <select id="reportFilterEmployee" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                                <option value="">Сотрудник: Все</option>
+                            </select>
+                            <select id="reportFilterProject" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                                <option value="">Проект: Все</option>
+                            </select>
+                            <button class="btn-secondary" onclick="clearReportFilters()" style="margin-left: auto;">Очистить фильтры</button>
+                            <button class="btn-secondary" onclick="exportCSV('reportsListTable', 'reports.csv')">📥 Экспорт CSV</button>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header"></div>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Время</th>
+                                        <th>Сотрудник</th>
+                                        <th>Проект</th>
+                                        <th>Рилсы</th>
+                                        <th>Платформы</th>
+                                        <th>Комментарий</th>
+                                        <th>Скриншот</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportsListTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REGULATIONS -->
+            <div class="content-section" id="regulationsSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">📄 Регламент работы монтажёра v1.1</div>
+                    </div>
+                    <div style="padding: 30px; line-height: 1.8;">
+                        <!-- Table of Contents -->
+                        <div style="background: #EFF6FF; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 4px solid var(--primary);">
+                            <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--primary);">📋 Содержание:</h4>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                <li><a href="#reg-section-1" style="color: var(--primary); text-decoration: none; cursor: pointer;">1. Общие положения</a></li>
+                                <li><a href="#reg-section-2" style="color: var(--primary); text-decoration: none; cursor: pointer;">2. Технические требования</a></li>
+                                <li><a href="#reg-section-3" style="color: var(--primary); text-decoration: none; cursor: pointer;">3. Требования к контенту</a></li>
+                                <li><a href="#reg-section-4" style="color: var(--primary); text-decoration: none; cursor: pointer;">4. Стандарты качества</a></li>
+                                <li><a href="#reg-section-9" style="color: var(--primary); text-decoration: none; cursor: pointer;">9. Система оплаты</a></li>
+                            </ul>
+                        </div>
+
+                        <h3 id="reg-section-1" style="margin-top: 20px; margin-bottom: 15px;">1. Общие положения</h3>
+                        <p>Настоящий Регламент устанавливает порядок работы монтажёра по созданию и выкладке контента для Instagram-аккаунтов. Регламент является обязательным для исполнения всеми сотрудниками, работающими над проектами компании.</p>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">1.1 Платформы и форматы</h3>
+                        <table style="border: 1px solid var(--border); margin-bottom: 20px;">
+                            <tr style="background: #F9FAFB;">
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Платформа</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">Instagram Reels, Instagram Карусели</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Формат</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">Вертикальный (9:16)</td>
+                            </tr>
+                            <tr style="background: #F9FAFB;">
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Разрешение</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">1080×1920 пикселей</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid var(--border);"><strong>Длительность</strong></td>
+                                <td style="padding: 10px; border: 1px solid var(--border);">6–14 секунд</td>
+                            </tr>
+                        </table>
+
+                        <h3 style="margin-top: 20px; margin-bottom: 15px;">1.3 Нормы выработки</h3>
+                        <p><strong>Рилсы в месяц:</strong> От 50 до 90 рилсов</p>
+                        <p><strong>Карусели в месяц:</strong> От 50 до 90 каруселей</p>
+                        <p><strong>Только рилсы (новые проекты):</strong> 80 рилсов (без каруселей)</p>
+
+                        <h3 id="reg-section-2" style="margin-top: 20px; margin-bottom: 15px;">2. Технические требования</h3>
+                        <p><strong>Параметры видео:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Длительность: От 5–6 до 13–15 секунд</li>
+                            <li>Разрешение: 1080×1920 пикселей (9:16)</li>
+                            <li>Формат: MP4</li>
+                            <li>Качество экспорта: Максимальное (1080p)</li>
+                        </ul>
+
+                        <p style="margin-top: 15px;"><strong>Требования к оформлению:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Шрифт: Согласно брендбуку заказчика</li>
+                            <li>Фон: Видео на фоне или белый фон для текста</li>
+                            <li>Заголовок: Размещается на фоне, читаемый</li>
+                            <li>Безопасная зона: Текст не выходит за границы Instagram</li>
+                        </ul>
+
+                        <h3 id="reg-section-3" style="margin-top: 20px; margin-bottom: 15px;">3. Требования к контенту</h3>
+                        <p><strong>Процесс передачи материалов:</strong> Материалы для работы монтажёра передаются через Телеграм-группу проекта.</p>
+
+                        <p style="margin-top: 15px;"><strong>Этапы работы:</strong></p>
+                        <ol style="margin-left: 20px;">
+                            <li>Получить материалы от куратора</li>
+                            <li>Изучить тему проекта и требования</li>
+                            <li>Создать заголовки и описания с ИИ</li>
+                            <li>Создать карусели в getdraft.io</li>
+                            <li>Создать рилсы в CapCut</li>
+                            <li>Отправить на проверку куратору</li>
+                            <li>Внести правки при необходимости</li>
+                            <li>Выложить контент</li>
+                        </ol>
+
+                        <h3 id="reg-section-4" style="margin-top: 20px; margin-bottom: 15px;">4. Стандарты качества</h3>
+                        <p><strong>Процесс проверки:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Проверяющий: Куратор (назначенный сотрудник)</li>
+                            <li>Допустимо правок: Не более 2 правок на один материал</li>
+                            <li>Срок правок: В течение суток</li>
+                        </ul>
+
+                        <p style="margin-top: 15px;"><strong>Типичные ошибки:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Несовпадение шрифта с брендматериалами</li>
+                            <li>Чёрные рамки по бокам видео</li>
+                            <li>Закрыто лицо или важный элемент</li>
+                            <li>Видео не соответствует теме</li>
+                            <li>Текст выходит за безопасную зону</li>
+                            <li>Низкое качество экспорта</li>
+                        </ul>
+
+                        <h3 id="reg-section-9" style="margin-top: 20px; margin-bottom: 15px;">9. Система оплаты</h3>
+                        <p><strong>Базовая ставка за месяц:</strong> 4 000 ₽</p>
+                        <p><strong>Максимум с премиями:</strong> До 8 000 ₽</p>
+                        <p>Оплата производится при 100% выполнении месячной нормы по проекту.</p>
+
+                        <p style="margin-top: 20px; padding: 15px; background: #FEF3C7; border-left: 4px solid var(--warning); border-radius: 4px;">
+                            <strong>⚠️ Контакт для вопросов:</strong> <a href="https://t.me/Rubtsov_Alllex" target="_blank">https://t.me/Rubtsov_Alllex</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GUIDE -->
+            <div class="content-section" id="guideSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">📖 Гайд для монтажёра v4.0</div>
+                    </div>
+                    <div style="padding: 30px; line-height: 1.8;">
+                        <div style="background: #EFF6FF; padding: 15px; border-left: 4px solid var(--primary); border-radius: 4px; margin-bottom: 20px;">
+                            <strong>ℹ️ Как пользоваться:</strong> Этот документ — пошаговая инструкция КАК делать работу. Требования к качеству, сроки и правила оплаты — в Регламенте v1.1.
+                        </div>
+
+                        <!-- Table of Contents -->
+                        <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid var(--border);">
+                            <h4 style="margin-top: 0; margin-bottom: 15px;">📋 Навигация по разделам:</h4>
+                            <ul style="margin: 0; padding-left: 20px; columns: 2;">
+                                <li><a href="#guide-welcome" style="color: var(--primary); text-decoration: none; cursor: pointer;">Добро пожаловать</a></li>
+                                <li><a href="#guide-tools" style="color: var(--primary); text-decoration: none; cursor: pointer;">Инструменты</a></li>
+                                <li><a href="#guide-1" style="color: var(--primary); text-decoration: none; cursor: pointer;">1. Генерация заголовков</a></li>
+                                <li><a href="#guide-2" style="color: var(--primary); text-decoration: none; cursor: pointer;">2. Описания</a></li>
+                                <li><a href="#guide-3" style="color: var(--primary); text-decoration: none; cursor: pointer;">3. Карусели</a></li>
+                                <li><a href="#guide-4" style="color: var(--primary); text-decoration: none; cursor: pointer;">4. Рилсы</a></li>
+                                <li><a href="#guide-5" style="color: var(--primary); text-decoration: none; cursor: pointer;">5. Выкладка</a></li>
+                                <li><a href="#guide-6" style="color: var(--primary); text-decoration: none; cursor: pointer;">6. Отчётность</a></li>
+                            </ul>
+                        </div>
+
+                        <h3 id="guide-welcome" style="margin-top: 20px; margin-bottom: 15px;">Добро пожаловать в команду</h3>
+                        <p>Ты будешь создавать контент для Instagram-аккаунтов бизнеса: карусели, рилсы и описания к ним. Задача — делать это каждый день, по проекту(-ам), которые тебе назначит куратор.</p>
+
+                        <div style="background: #FEF3C7; padding: 15px; border-left: 4px solid var(--warning); border-radius: 4px; margin-bottom: 20px;">
+                            <strong>⚠️ Первый шаг:</strong> Изучи проект, на который тебя назначили: чем занимается компания, какой ассортимент/услуги, кто целевая аудитория.
+                        </div>
+
+                        <h3 id="guide-tools" style="margin-top: 20px; margin-bottom: 15px;">Инструменты</h3>
+                        <ul style="margin-left: 20px;">
+                            <li><strong>Claude (ИИ)</strong> — Генерация заголовков и описаний</li>
+                            <li><strong>getdraft.io</strong> — Создание каруселей</li>
+                            <li><strong>CapCut</strong> — Создание рилсов</li>
+                            <li><strong>Телеграм-группа</strong> — Хранение материалов</li>
+                        </ul>
+
+                        <h3 id="guide-1" style="margin-top: 20px; margin-bottom: 15px;">1. Генерация заголовков через ИИ</h3>
+                        <p>Первый шаг — придумать заголовки для рилсов и каруселей через Claude.</p>
+
+                        <div style="background: #F3F4F6; padding: 15px; border-radius: 4px; margin: 15px 0; display: flex; justify-content: space-between; align-items: flex-start;">
+                            <p style="margin: 0; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; flex: 1;">Представь, что ты опытный рилсмейкер...
+Твоя задача — придумать заголовки для Reels.
+[Полный текст промпта в Регламенте]</p>
+                            <button class="btn-secondary" onclick="copyPrompt('Представь, что ты опытный рилсмейкер и контент-стратег...')" style="margin-left: 10px; white-space: nowrap;">📋 Копировать</button>
+                        </div>
+
+                        <h3 id="guide-2" style="margin-top: 20px; margin-bottom: 15px;">2. Написание описаний</h3>
+                        <p>Для каждого рилса и карусели нужно описание — текст под постом.</p>
+
+                        <h3 id="guide-3" style="margin-top: 20px; margin-bottom: 15px;">3. Создание каруселей в getdraft.io</h3>
+                        <p><strong>Пошаговая работа:</strong></p>
+                        <ol style="margin-left: 20px;">
+                            <li>Открой ссылку на getdraft</li>
+                            <li>Выбери шаблон карусели</li>
+                            <li>Отредактируй заголовок (шрифт Jost)</li>
+                            <li>Подзаголовок не должен быть жирным</li>
+                            <li>Сохрани и скачай слайды</li>
+                        </ol>
+
+                        <h3 id="guide-4" style="margin-top: 20px; margin-bottom: 15px;">4. Создание рилсов в CapCut</h3>
+                        <p><strong>Пошаговая работа:</strong></p>
+                        <ol style="margin-left: 20px;">
+                            <li>Открой CapCut (десктоп или мобильный)</li>
+                            <li>Создай новый проект 9:16</li>
+                            <li>Загрузи исходное видео/фото</li>
+                            <li>Добавь текст-заголовок</li>
+                            <li>Используй шрифт из брендбука</li>
+                            <li>⚠️ Музыку в ролике отключить</li>
+                            <li>Экспортируй в максимальном качестве</li>
+                        </ol>
+
+                        <h3 id="guide-5" style="margin-top: 20px; margin-bottom: 15px;">5. Выкладка контента</h3>
+                        <ol style="margin-left: 20px;">
+                            <li>Сохрани файл: ДД.ММ.ГГГГ [номер] — [тип].mp4</li>
+                            <li>Отправь в Телеграм-группу проекта</li>
+                            <li>При наличии доступа к Instagram — выложи сам</li>
+                            <li>Добавь трендовую музыку в Instagram</li>
+                            <li>Отправь скриншот куратору</li>
+                            <li>Заполни отчёт в системе WorkInsight</li>
+                        </ol>
+
+                        <h3 id="guide-6" style="margin-top: 20px; margin-bottom: 15px;">6. Ежедневная отчётность</h3>
+                        <p>Каждый день до 21:00 сотрудник обязан:</p>
+                        <ul style="margin-left: 20px;">
+                            <li>Отправить скриншоты работы в Телеграм-группу</li>
+                            <li>Заполнить отчёт в системе WorkInsight (раздел «Отчёты»)</li>
+                        </ul>
+
+                        <div style="background: #D1FAE5; padding: 15px; border-left: 4px solid var(--success); border-radius: 4px; margin: 20px 0;">
+                            <strong>✅ Совет:</strong> Планируй контент наперёд, за 1–2 дня до публикации. Это даёт буфер для правок и снижает стресс.
+                        </div>
+
+                        <p style="margin-top: 20px; padding: 15px; background: #FEF3C7; border-left: 4px solid var(--warning); border-radius: 4px;">
+                            <strong>📞 Контакт куратора:</strong> <a href="https://t.me/Rubtsov_Alllex" target="_blank">https://t.me/Rubtsov_Alllex</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FINANCE -->
+            <div class="content-section" id="financeSection">
+                <h2 style="margin-bottom: 20px;">💰 Финансовый отчёт</h2>
+
+                <!-- Tabs -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn-primary" id="financeSettingsTab" style="background: var(--primary); color: white; border: none;">⚙️ Настройки</button>
+                    <button class="btn-secondary" id="financeReportTab">📊 Отчет по проектам</button>
+                    <button class="btn-secondary" id="financeAnalyticsTab">📈 Итоги и графики</button>
+                </div>
+
+                <!-- Settings -->
+                <div id="financeSettings">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Финансовые параметры</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div class="form-group">
+                                <label>Базовая зарплата сотрудника (₽)</label>
+                                <input type="number" id="baseSalary" value="4000" min="0" step="100" onchange="updateFinanceParams()">
+                                <small style="color: var(--gray);">Базовая ставка за выполнение месячной нормы</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Норма рилсов в месяц</label>
+                                <input type="number" id="baseReels" value="80" min="1" step="10" onchange="updateFinanceParams()">
+                                <small style="color: var(--gray);">Количество рилсов для получения базовой зарплаты</small>
+                            </div>
+                            <div style="background: #EFF6FF; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid var(--primary);">
+                                <strong>💡 Цена за рилс: <span id="pricePerReel" style="color: var(--primary); font-size: 18px;">50₽</span></strong>
+                                <small style="display: block; margin-top: 10px; color: var(--gray);">= Базовая зарплата ÷ Норма рилсов</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Прочие расходы (₽/месяц)</label>
+                                <input type="number" id="otherExpenses" value="0" min="0" step="100" onchange="updateFinanceParams()">
+                                <small style="color: var(--gray);">Инструменты, софт и т.д.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report by Projects -->
+                <div id="financeReport" style="display: none;">
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Доход по проектам</div>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Проект</th>
+                                        <th>Статус</th>
+                                        <th>План рилсов</th>
+                                        <th>Сделано рилсов</th>
+                                        <th>Цена за рилс</th>
+                                        <th>Расчётный доход</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeProjectsTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="table-section" style="margin-top: 20px;">
+                        <div class="table-header">
+                            <div class="table-title">Сводка по доходам</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                                <div class="stat-card" style="border-left-color: var(--success);">
+                                    <div class="stat-label">Доход от завершённых</div>
+                                    <div class="stat-value" id="incomeCompleted">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--warning);">
+                                    <div class="stat-label">Доход от отменённых</div>
+                                    <div class="stat-value" id="incomeCancelled">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--primary);">
+                                    <div class="stat-label">Общий доход</div>
+                                    <div class="stat-value" id="totalIncome">0₽</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics and Summary -->
+                <div id="financeAnalytics" style="display: none;">
+                    <div class="table-section" style="margin-bottom: 20px;">
+                        <div class="table-header">
+                            <div class="table-title">Общие итоги</div>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                                <div class="stat-card" style="border-left-color: var(--success);">
+                                    <div class="stat-label">Общий доход</div>
+                                    <div class="stat-value" id="totalIncomeAll">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--danger);">
+                                    <div class="stat-label">Расходы</div>
+                                    <div class="stat-value" id="totalExpenses">0₽</div>
+                                </div>
+                                <div class="stat-card" style="border-left-color: var(--primary);">
+                                    <div class="stat-label">Прибыль</div>
+                                    <div class="stat-value" id="totalProfit">0₽</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <div class="table-section">
+                            <div class="table-header">
+                                <div class="table-title">Доход</div>
+                            </div>
+                            <div style="padding: 20px;">
+                                <canvas id="chartIncome" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                        <div class="table-section">
+                            <div class="table-header">
+                                <div class="table-title">Расход vs Доход</div>
+                            </div>
+                            <div style="padding: 20px;">
+                                <canvas id="chartProfitMargin" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCESS (Admin only) -->
+            <div class="content-section" id="accessSection">
+                <div style="background: #FEE2E2; padding: 15px; border-left: 4px solid var(--danger); border-radius: 4px; margin-bottom: 20px;">
+                    <strong>⚠️ Конфиденциальные данные — только для руководителя</strong>
+                </div>
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">Доступы к проектам</div>
+                        <div class="table-controls">
+                            <button class="btn-primary" id="addAccessBtn">+ Добавить доступ</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Проект</th>
+                                    <th>TG-группа</th>
+                                    <th>Логин</th>
+                                    <th>Пароль</th>
+                                    <th>Примечание</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accessTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ======================== MODALS ======================== -->
+
+<!-- Project Modal -->
+<div class="modal" id="projectModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать проект</div>
+        <form id="projectForm">
+            <div class="form-group">
+                <label>Название проекта *</label>
+                <input type="text" id="projectName" required>
+            </div>
+            <div class="form-group">
+                <label>Этап *</label>
+                <select id="projectStage" required>
+                    <option value="">Выберите этап</option>
+                    <option value="В работе">В работе</option>
+                    <option value="Проблемный">Проблемный</option>
+                    <option value="На паузе">На паузе</option>
+                    <option value="Готово">Готово</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ответственный *</label>
+                <select id="projectResponsible" required>
+                    <option value="">Выберите сотрудника</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Платформа *</label>
+                <select id="projectPlatform" required>
+                    <option value="">Выберите платформу</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="ВКонтакте">ВКонтакте</option>
+                    <option value="Телеграм">Телеграм</option>
+                    <option value="Instagram+ВК">Instagram+ВК</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Приоритет (1-10)</label>
+                <input type="number" id="projectPriority" min="1" max="10" value="5">
+            </div>
+            <div class="form-group">
+                <label>План рилсов</label>
+                <input type="number" id="projectPlanReels" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Сделано рилсов</label>
+                <input type="number" id="projectDoneReels" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Дата начала</label>
+                <input type="date" id="projectStartDate">
+            </div>
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea id="projectComment" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; width: 100%; min-height: 80px;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeProjectModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Task Modal -->
+<div class="modal" id="taskModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать задачу</div>
+        <form id="taskForm">
+            <div class="form-group">
+                <label>Проект *</label>
+                <select id="taskProject" required>
+                    <option value="">Выберите проект</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Задача *</label>
+                <input type="text" id="taskName" required>
+            </div>
+            <div class="form-group">
+                <label>Срок начала</label>
+                <input type="date" id="taskStartDate">
+            </div>
+            <div class="form-group">
+                <label>Срок окончания</label>
+                <input type="date" id="taskEndDate">
+            </div>
+            <div class="form-group">
+                <label>Ответственный *</label>
+                <select id="taskResponsible" required>
+                    <option value="">Выберите сотрудника</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Этап *</label>
+                <select id="taskStage" required>
+                    <option value="">Выберите этап</option>
+                    <option value="В работе">В работе</option>
+                    <option value="Ждёт">Ждёт</option>
+                    <option value="Готово">Готово</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea id="taskComment" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; width: 100%; min-height: 80px;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeTaskModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Employee Modal -->
+<div class="modal" id="employeeModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать сотрудника</div>
+        <form id="employeeForm">
+            <div class="form-group">
+                <label>Имя *</label>
+                <input type="text" id="employeeFirstName" required>
+            </div>
+            <div class="form-group">
+                <label>Фамилия</label>
+                <input type="text" id="employeeLastName">
+            </div>
+            <div class="form-group">
+                <label>Город *</label>
+                <input type="text" id="employeeCity" required>
+            </div>
+            <div class="form-group">
+                <label>Занятость *</label>
+                <select id="employeeEmployment" required>
+                    <option value="">Выберите</option>
+                    <option value="Работа">Работа</option>
+                    <option value="Учёба + работа">Учёба + работа</option>
+                    <option value="Свободен">Свободен</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Активные проекты</label>
+                <input type="text" id="employeeProjects" placeholder="Через запятую">
+            </div>
+            <div class="form-group">
+                <label>Статус *</label>
+                <select id="employeeStatus" required>
+                    <option value="">Выберите статус</option>
+                    <option value="Активен">Активен</option>
+                    <option value="НЕАктивен">НЕАктивен</option>
+                    <option value="Админ">Админ</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeEmployeeModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal" id="analyticsModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать запись аналитики</div>
+        <form id="analyticsForm">
+            <div class="form-group">
+                <label>Проект *</label>
+                <select id="analyticsProject" required>
+                    <option value="">Выберите проект</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ответственный *</label>
+                <select id="analyticsResponsible" required>
+                    <option value="">Выберите сотрудника</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Дата начала выкладки</label>
+                <input type="date" id="analyticsStartDate">
+            </div>
+            <div class="form-group">
+                <label>Просмотры</label>
+                <input type="number" id="analyticsViews" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Подписки</label>
+                <input type="number" id="analyticsSubs" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Всего подписчиков</label>
+                <input type="number" id="analyticsTotalSubs" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Взаимодействия</label>
+                <input type="number" id="analyticsInteractions" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label>Период</label>
+                <input type="text" id="analyticsPeriod" placeholder="01.01-31.01">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeAnalyticsModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Access Modal -->
+<div class="modal" id="accessModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать доступ</div>
+        <form id="accessForm">
+            <div class="form-group">
+                <label>Проект *</label>
+                <select id="accessProject" required>
+                    <option value="">Выберите проект</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ссылка на TG-группу</label>
+                <input type="text" id="accessTgLink" placeholder="https://t.me/...">
+            </div>
+            <div class="form-group">
+                <label>Логин / Email</label>
+                <input type="text" id="accessLogin">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="text" id="accessPassword">
+            </div>
+            <div class="form-group">
+                <label>Примечание</label>
+                <input type="text" id="accessNote">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeAccessModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="js/core/api.js"></script>
+<script src="js/core/state.js"></script>
+<script src="js/core/auth.js"></script>
+<script src="js/utils/helpers.js"></script>
+<script src="js/utils/modals.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

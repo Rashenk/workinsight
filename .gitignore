@@ -17,3 +17,13 @@ Thumbs.db
 # Local development
 .env
 .env.local
+.env.*.local
+
+# Database
+database.sqlite
+*.db
+*.sqlite
+
+# Package managers
+package-lock.json
+yarn.lock
