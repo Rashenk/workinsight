@@ -1,6 +1,8 @@
 // Daily Reels (Ежедневный чек-лист рилсов)
 
 async function renderDailyReels() {
+  console.log('🚀 renderDailyReels called!');
+
   const section = document.getElementById('dailyReelsSection');
   if (!section) {
     console.error('❌ dailyReelsSection not found');
