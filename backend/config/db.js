@@ -139,6 +139,29 @@ async function initializeDatabase() {
         base_reels INTEGER DEFAULT 80,
         other_expenses INTEGER DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS daily_reels (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        responsible_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        completed BOOLEAN DEFAULT 0,
+        notes TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(project_id, responsible_id, date)
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT,
+        project_id INTEGER,
+        read BOOLEAN DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
     `;
 
     for (const stmt of schema.split(';')) {

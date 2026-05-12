@@ -60,6 +60,15 @@ async function loadAppData() {
       state.access = access || [];
     }
 
+    // Load daily reels
+    try {
+      const dailyReels = await api.get('/daily-reels');
+      state.dailyReels = dailyReels || [];
+    } catch (e) {
+      console.warn('Daily reels not available');
+      state.dailyReels = [];
+    }
+
     // Load finance params
     const financeParams = await api.get('/finance/params');
     state.financeParams = financeParams || {};
@@ -384,6 +393,7 @@ function renderSection(section) {
     tasks: 'Задачи',
     employees: 'Сотрудники',
     reports: 'Отчёты',
+    'daily-reels': 'Рилс на сегодня',
     regulations: 'Регламент',
     guide: 'Гайд',
     finance: 'Финансы',
@@ -405,6 +415,8 @@ function renderSection(section) {
     renderEmployees();
   } else if (section === 'reports') {
     renderReports();
+  } else if (section === 'daily-reels') {
+    renderDailyReels();
   } else if (section === 'finance') {
     renderFinance();
   } else if (section === 'access') {

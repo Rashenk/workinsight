@@ -41,6 +41,7 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/access', require('./routes/access'));
+app.use('/api/daily-reels', require('./routes/daily-reels'));
 
 // Serve static files from frontend
 app.use(express.static(path.join(__dirname, '../frontend')));

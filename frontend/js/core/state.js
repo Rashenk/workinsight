@@ -12,6 +12,7 @@ const state = {
   reports: [],
   access: [],
   users: [],
+  dailyReels: [],
 
   // Finance
   financeParams: {},
@@ -38,6 +39,7 @@ const state = {
     this.analytics = [];
     this.reports = [];
     this.access = [];
+    this.dailyReels = [];
   },
 
   isAdmin() {
