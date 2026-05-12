@@ -526,13 +526,23 @@ function renderDashboardCharts() {
 }
 
 function renderProjects() {
+  console.log('📊 renderProjects called');
   const tbody = document.getElementById('projectsTable');
+  if (!tbody) {
+    console.error('❌ projectsTable not found');
+    return;
+  }
   tbody.innerHTML = '';
 
   let projects = state.projects;
+  console.log('📋 Total projects:', projects.length);
+  console.log('👤 Is admin:', state.isAdmin());
+
   if (!state.isAdmin()) {
     projects = projects.filter(p => p.responsible_id === state.currentUser?.id);
   }
+
+  console.log('📋 Filtered projects:', projects.length);
 
   projects.forEach((project, index) => {
     const progress = project.plan_reels > 0 ? Math.round((project.done_reels / project.plan_reels) * 100) : 0;

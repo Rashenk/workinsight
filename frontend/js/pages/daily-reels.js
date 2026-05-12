@@ -347,9 +347,6 @@ async function openAdminEditModal(userId, userData) {
             </div>
           </div>
 
-          <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-            <button class="btn-secondary" id="closeModalBtn">Закрыть</button>
-          </div>
         </div>
       </div>
     `;
@@ -361,10 +358,6 @@ async function openAdminEditModal(userId, userData) {
 
     // Event listeners
     document.getElementById('closeModal').addEventListener('click', () => {
-      modalContainer.remove();
-    });
-
-    document.getElementById('closeModalBtn').addEventListener('click', () => {
       modalContainer.remove();
     });
 
