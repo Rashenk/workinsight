@@ -3,7 +3,6 @@
 async function handleLogin() {
   const emailInput = document.getElementById('userName');
   const passwordInput = document.getElementById('userPassword');
-  const selectedRole = document.querySelector('.role-btn.active')?.dataset.role;
 
   if (!emailInput.value || !passwordInput.value) {
     showToast('Введите email и пароль', 'error');
@@ -11,18 +10,29 @@ async function handleLogin() {
   }
 
   try {
-    const result = await api.post('/auth/login', {
-      email: emailInput.value,
-      password: passwordInput.value
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: emailInput.value,
+        password: passwordInput.value
+      })
     });
 
-    if (!result) return;
+    const data = await response.json();
 
-    state.setUser(result.user, result.token);
+    if (!response.ok) {
+      showToast('❌ ' + (data.error || 'Неправильный email или пароль'), 'error');
+      return;
+    }
+
+    state.setUser(data.user, data.token);
     hideLoginScreen();
-    loadAppData();
+    await loadAppData();
+    showToast('✅ Добро пожаловать, ' + data.user.name + '!', 'success');
   } catch (error) {
-    showToast('Ошибка входа: ' + error.message, 'error');
+    console.error('Login error:', error);
+    showToast('❌ Ошибка входа: ' + error.message, 'error');
   }
 }
 
@@ -40,36 +50,41 @@ async function handleRegister() {
   const passwordConfirm = passwordConfirmInput.value;
 
   if (!email || !name || !password) {
-    showToast('Заполните обязательные поля', 'error');
+    showToast('❌ Заполните обязательные поля', 'error');
     return;
   }
 
   if (password !== passwordConfirm) {
-    showToast('Пароли не совпадают', 'error');
+    showToast('❌ Пароли не совпадают', 'error');
     return;
   }
 
   if (password.length < 6) {
-    showToast('Пароль должен быть минимум 6 символов', 'error');
+    showToast('❌ Пароль должен быть минимум 6 символов', 'error');
     return;
   }
 
   try {
-    const result = await api.post('/auth/register', {
-      email,
-      name,
-      phone,
-      password,
-      passwordConfirm
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, phone, password, passwordConfirm })
     });
 
-    if (!result) return;
+    const data = await response.json();
 
-    state.setUser(result.user, result.token);
+    if (!response.ok) {
+      showToast('❌ ' + (data.error || 'Ошибка при регистрации'), 'error');
+      return;
+    }
+
+    state.setUser(data.user, data.token);
     hideLoginScreen();
-    loadAppData();
+    await loadAppData();
+    showToast('✅ Добро пожаловать, ' + data.user.name + '!', 'success');
   } catch (error) {
-    showToast('Ошибка регистрации: ' + error.message, 'error');
+    console.error('Register error:', error);
+    showToast('❌ Ошибка регистрации: ' + error.message, 'error');
   }
 }
 

@@ -10,21 +10,31 @@ function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = 'toast toast-' + type;
   toast.textContent = message;
+
+  const bgColor = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6';
+
   toast.style.cssText = `
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
+    background: ${bgColor};
     color: white;
-    padding: 12px 20px;
-    border-radius: 6px;
-    z-index: 9999;
+    padding: 16px 24px;
+    border-radius: 8px;
+    z-index: 10000;
     max-width: 400px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    animation: slideIn 0.3s ease-out;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    font-size: 14px;
+    font-weight: 500;
   `;
+
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function filterTable(input, tableId) {
