@@ -2,13 +2,22 @@
 
 async function renderDailyReels() {
   const section = document.getElementById('dailyReelsSection');
-  if (!section) return;
+  if (!section) {
+    console.error('❌ dailyReelsSection not found');
+    return;
+  }
 
   // Get user's assigned projects
   let projects = state.projects;
+  console.log('📊 Total projects:', projects.length);
+  console.log('👤 Is admin:', state.isAdmin());
+  console.log('👤 Current user ID:', state.currentUser?.id);
+
   if (!state.isAdmin()) {
     projects = projects.filter(p => p.responsible_id === state.currentUser?.id);
   }
+
+  console.log('📋 Filtered projects:', projects.length);
 
   if (projects.length === 0) {
     section.innerHTML = '<p style="padding: 20px;">Нет назначенных проектов</p>';
@@ -88,10 +97,14 @@ async function renderDailyReels() {
     </div>
   `;
 
+  console.log('✅ Rendering HTML with', projects.length, 'projects');
   section.innerHTML = html;
+  console.log('✅ HTML rendered');
 
   // Add event listeners to checkboxes
-  document.querySelectorAll('.daily-reel-checkbox').forEach(checkbox => {
+  const checkboxes = document.querySelectorAll('.daily-reel-checkbox');
+  console.log('✅ Found', checkboxes.length, 'checkboxes');
+  checkboxes.forEach(checkbox => {
     checkbox.addEventListener('change', async (e) => {
       const projectId = e.target.dataset.projectId;
       try {
