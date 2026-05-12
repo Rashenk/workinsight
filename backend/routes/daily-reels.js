@@ -8,23 +8,29 @@ const router = express.Router();
 router.get('/', verifyToken, async (req, res) => {
   try {
     let query = `
-      SELECT dr.*,
+      SELECT p.id as project_id,
              p.name as project_name,
-             u.name as responsible_name
-      FROM daily_reels dr
-      JOIN projects p ON dr.project_id = p.id
-      JOIN users u ON dr.responsible_id = u.id
+             p.platform,
+             u.id as responsible_id,
+             u.name as responsible_name,
+             dr.id as reel_id,
+             dr.date,
+             dr.completed,
+             dr.notes
+      FROM projects p
+      LEFT JOIN users u ON p.responsible_id = u.id
+      LEFT JOIN daily_reels dr ON p.id = dr.project_id AND u.id = dr.responsible_id
       WHERE 1=1
     `;
     const params = [];
 
     // If not admin, only show assigned projects
     if (req.user.role !== 'admin') {
-      query += ` AND dr.responsible_id = ?`;
+      query += ` AND p.responsible_id = ?`;
       params.push(req.user.id);
     }
 
-    query += ` ORDER BY dr.date DESC LIMIT 365`;
+    query += ` ORDER BY dr.date DESC, p.name ASC LIMIT 500`;
 
     const reels = await allAsync(query, params);
     res.json(reels);

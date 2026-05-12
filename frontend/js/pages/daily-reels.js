@@ -15,6 +15,15 @@ async function renderDailyReels() {
     return;
   }
 
+  // Fetch all daily reels for current user/admin
+  let allReels = [];
+  try {
+    allReels = await api.get('/daily-reels');
+  } catch (error) {
+    console.error('Error loading daily reels:', error);
+    allReels = [];
+  }
+
   // Get current date
   const today = new Date().toISOString().split('T')[0];
   const now = new Date();
@@ -31,12 +40,8 @@ async function renderDailyReels() {
 
   for (const project of projects) {
     const projectId = project.id;
-
-    // Fetch today's status for this project
-    try {
-      const reels = await api.get(`/daily-reels?projectId=${projectId}`);
-      const todayReel = reels.find(r => r.date === today);
-      const completed = todayReel?.completed || false;
+    const todayReel = allReels.find(r => r.project_id === projectId && r.date === today);
+    const completed = todayReel?.completed || false;
 
       html += `
         <div style="
@@ -71,9 +76,6 @@ async function renderDailyReels() {
           </label>
         </div>
       `;
-    } catch (error) {
-      console.error('Error loading daily reel:', error);
-    }
   }
 
   html += `
