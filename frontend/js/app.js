@@ -3,22 +3,30 @@
 let chartCompare, chartStages, chartViews, chartInteractions, chartIncome, chartProfitMargin;
 
 async function initializeApp() {
+  console.log('🚀 Initializing app...');
+
+  // Setup login/register buttons FIRST (before checking token)
+  setupEventListeners();
+
   // Check if user is already logged in
   const token = api.getToken();
 
   if (token) {
+    console.log('📍 Found token, verifying...');
     // Verify token is still valid
     const user = await api.get('/auth/me');
     if (user) {
+      console.log('✅ User authenticated:', user.name);
       state.setUser(user, token);
       hideLoginScreen();
       await loadAppData();
-      setupEventListeners();
       renderSection('dashboard');
     } else {
+      console.log('❌ Token invalid, showing login');
       showLoginScreen();
     }
   } else {
+    console.log('📍 No token found, showing login screen');
     showLoginScreen();
   }
 }
@@ -77,7 +85,19 @@ function updateAdminSection() {
 }
 
 function setupEventListeners() {
-  // Navigation items
+  // Login button - ALWAYS setup even on login screen
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', handleLogin);
+  }
+
+  // Register button - ALWAYS setup even on login screen
+  const registerBtn = document.getElementById('registerBtn');
+  if (registerBtn) {
+    registerBtn.addEventListener('click', handleRegister);
+  }
+
+  // Navigation items (only if user is logged in)
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
       const section = item.dataset.section;
@@ -88,13 +108,10 @@ function setupEventListeners() {
   });
 
   // Logout button
-  document.getElementById('logoutBtn').addEventListener('click', logout);
-
-  // Login button
-  document.getElementById('loginBtn').addEventListener('click', handleLogin);
-
-  // Register button
-  document.getElementById('registerBtn').addEventListener('click', handleRegister);
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', logout);
+  }
 
   // Set up modal handlers
   setupModalHandlers();
@@ -527,8 +544,14 @@ function updateFinanceParams() {
 }
 
 // Initialize app when DOM is loaded
+console.log('📄 App.js loaded, document.readyState:', document.readyState);
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('📄 DOMContentLoaded event fired');
+    initializeApp();
+  });
 } else {
+  console.log('📄 DOM already ready, initializing...');
   initializeApp();
 }
