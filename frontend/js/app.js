@@ -85,16 +85,32 @@ function updateAdminSection() {
 }
 
 function setupEventListeners() {
+  console.log('🔧 Setting up event listeners...');
+
   // Login button - ALWAYS setup even on login screen
   const loginBtn = document.getElementById('loginBtn');
+  console.log('🔘 Login button found:', !!loginBtn);
   if (loginBtn) {
-    loginBtn.addEventListener('click', handleLogin);
+    console.log('✅ Adding click listener to loginBtn');
+    loginBtn.addEventListener('click', () => {
+      console.log('🖱️ Login button clicked!');
+      handleLogin();
+    });
+  } else {
+    console.error('❌ Login button NOT found!');
   }
 
   // Register button - ALWAYS setup even on login screen
   const registerBtn = document.getElementById('registerBtn');
+  console.log('🔘 Register button found:', !!registerBtn);
   if (registerBtn) {
-    registerBtn.addEventListener('click', handleRegister);
+    console.log('✅ Adding click listener to registerBtn');
+    registerBtn.addEventListener('click', () => {
+      console.log('🖱️ Register button clicked!');
+      handleRegister();
+    });
+  } else {
+    console.warn('⚠️ Register button NOT found');
   }
 
   // Navigation items (only if user is logged in)
