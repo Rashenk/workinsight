@@ -109,32 +109,33 @@ async function renderDailyReels() {
   });
 
   // Load monthly stats
-  loadMonthlyStats();
+  loadMonthlyStats(projects, allReels);
 }
 
-async function loadMonthlyStats() {
+function loadMonthlyStats(projects, allReels) {
   const statsContainer = document.getElementById('monthlyStats');
   if (!statsContainer) return;
 
-  let projects = state.projects;
-  if (!state.isAdmin()) {
-    projects = projects.filter(p => p.responsible_id === state.currentUser?.id);
-  }
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
 
   let statsHtml = '';
 
   for (const project of projects) {
-    try {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
+    // Filter reels for this project in current month
+    const projectReels = allReels.filter(r =>
+      r.project_id === project.id &&
+      r.date &&
+      r.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)
+    );
 
-      const checklist = await api.get(`/daily-reels/monthly/${project.id}?year=${year}&month=${month}`);
-      const completed = checklist.filter(c => c.completed).length;
-      const total = checklist.length;
-      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const completed = projectReels.filter(r => r.completed).length;
+    const total = daysInMonth;
+    const percentage = Math.round((completed / total) * 100);
 
-      statsHtml += `
+    statsHtml += `
         <div style="
           background: white;
           border: 1px solid var(--border);
@@ -167,9 +168,6 @@ async function loadMonthlyStats() {
           </p>
         </div>
       `;
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
   }
 
   statsContainer.innerHTML = statsHtml;
