@@ -267,6 +267,14 @@ function handleDataActionClick(e) {
       e.preventDefault();
       clearReportFilters();
       break;
+    case 'edit':
+      e.preventDefault();
+      handleEdit(target.dataset.type, parseInt(target.dataset.id));
+      break;
+    case 'delete':
+      e.preventDefault();
+      handleDelete(target.dataset.type, parseInt(target.dataset.id));
+      break;
   }
 }
 
@@ -304,6 +312,48 @@ function handleDataActionInput(e) {
   switch(action) {
     case 'filter-table':
       filterTable(target, target.dataset.table);
+      break;
+  }
+}
+
+function handleEdit(type, id) {
+  switch(type) {
+    case 'project':
+      editProject(id);
+      break;
+    case 'task':
+      editTask(id);
+      break;
+    case 'employee':
+      editEmployee(id);
+      break;
+    case 'analytics':
+      editAnalytics(id);
+      break;
+    case 'access':
+      editAccess(id);
+      break;
+  }
+}
+
+function handleDelete(type, id) {
+  if (!confirm('Вы уверены, что хотите удалить?')) return;
+
+  switch(type) {
+    case 'project':
+      deleteProject(id);
+      break;
+    case 'task':
+      deleteTask(id);
+      break;
+    case 'employee':
+      deleteEmployee(id);
+      break;
+    case 'analytics':
+      deleteAnalytics(id);
+      break;
+    case 'access':
+      deleteAccess(id);
       break;
   }
 }
@@ -477,8 +527,8 @@ function renderProjects() {
         <td>${project.done_reels}</td>
         <td>${progress}%</td>
         <td>
-          <button class="btn-sm" onclick="editProject(${project.id})">✏️</button>
-          ${state.isAdmin() ? `<button class="btn-sm btn-danger" onclick="deleteProject(${project.id})">🗑️</button>` : ''}
+          <button class="btn-sm" data-action="edit" data-type="project" data-id="${project.id}">✏️</button>
+          ${state.isAdmin() ? `<button class="btn-sm btn-danger" data-action="delete" data-type="project" data-id="${project.id}">🗑️</button>` : ''}
         </td>
       </tr>
     `;
@@ -504,8 +554,8 @@ function renderAnalytics() {
         <td>${a.interactions}</td>
         <td>${a.period}</td>
         <td>
-          <button class="btn-sm" onclick="editAnalytics(${a.id})">✏️</button>
-          ${state.isAdmin() ? `<button class="btn-sm btn-danger" onclick="deleteAnalytics(${a.id})">🗑️</button>` : ''}
+          <button class="btn-sm" data-action="edit" data-type="analytics" data-id="${a.id}">✏️</button>
+          ${state.isAdmin() ? `<button class="btn-sm btn-danger" data-action="delete" data-type="analytics" data-id="${a.id}">🗑️</button>` : ''}
         </td>
       </tr>
     `;
@@ -526,8 +576,8 @@ function renderTasks() {
         <td>${task.responsible_name}</td>
         <td>${task.stage}</td>
         <td>
-          <button class="btn-sm" onclick="editTask(${task.id})">✏️</button>
-          ${state.isAdmin() ? `<button class="btn-sm btn-danger" onclick="deleteTask(${task.id})">🗑️</button>` : ''}
+          <button class="btn-sm" data-action="edit" data-type="task" data-id="${task.id}">✏️</button>
+          ${state.isAdmin() ? `<button class="btn-sm btn-danger" data-action="delete" data-type="task" data-id="${task.id}">🗑️</button>` : ''}
         </td>
       </tr>
     `;
@@ -549,8 +599,8 @@ function renderEmployees() {
         <td>${emp.status}</td>
         <td>${emp.status}</td>
         <td>
-          <button class="btn-sm" onclick="editEmployee(${emp.id})">✏️</button>
-          <button class="btn-sm btn-danger" onclick="deleteEmployee(${emp.id})">🗑️</button>
+          <button class="btn-sm" data-action="edit" data-type="employee" data-id="${emp.id}">✏️</button>
+          <button class="btn-sm btn-danger" data-action="delete" data-type="employee" data-id="${emp.id}">🗑️</button>
         </td>
       </tr>
     `;
@@ -606,8 +656,8 @@ function renderAccess() {
         <td><input type="password" value="${acc.password}" readonly style="width:150px;"></td>
         <td>${acc.note}</td>
         <td>
-          <button class="btn-sm" onclick="editAccess(${acc.id})">✏️</button>
-          <button class="btn-sm btn-danger" onclick="deleteAccess(${acc.id})">🗑️</button>
+          <button class="btn-sm" data-action="edit" data-type="access" data-id="${acc.id}">✏️</button>
+          <button class="btn-sm btn-danger" data-action="delete" data-type="access" data-id="${acc.id}">🗑️</button>
         </td>
       </tr>
     `;
