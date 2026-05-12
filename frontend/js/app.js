@@ -300,7 +300,8 @@ function renderDashboardTable() {
   // Filter for current user if not admin
   let projects = state.projects;
   if (!state.isAdmin()) {
-    projects = projects.filter(p => p.responsible_id === /* need user id from server */);
+    // TODO: Get current user ID from server
+    projects = projects.filter(p => p.responsible_id === state.currentUser?.id);
   }
 
   projects.filter(p => p.stage === 'В работе').forEach(project => {
