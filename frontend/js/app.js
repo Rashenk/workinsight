@@ -377,7 +377,13 @@ function renderSection(section) {
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
   // Show selected section
-  const sectionEl = document.getElementById(section + 'Section');
+  // Convert 'daily-reels' to 'dailyReelsSection', 'dashboard' to 'dashboardSection', etc.
+  const sectionId = section
+    .split('-')
+    .map((word, i) => i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1))
+    .join('') + 'Section';
+
+  const sectionEl = document.getElementById(sectionId);
   if (sectionEl) {
     sectionEl.classList.add('active');
   }
