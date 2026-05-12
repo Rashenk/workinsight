@@ -1,15 +1,22 @@
 // Authentication functions
 
 async function handleLogin() {
+  console.log('🔐 handleLogin called');
+
   const emailInput = document.getElementById('userName');
   const passwordInput = document.getElementById('userPassword');
 
-  if (!emailInput.value || !passwordInput.value) {
+  console.log('📝 Inputs found:', { emailInput: !!emailInput, passwordInput: !!passwordInput });
+  console.log('📝 Values:', { email: emailInput?.value, password: passwordInput?.value ? '***' : 'empty' });
+
+  if (!emailInput?.value || !passwordInput?.value) {
+    console.warn('❌ Empty inputs');
     showToast('Введите email и пароль', 'error');
     return;
   }
 
   try {
+    console.log('🌐 Sending login request...');
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -19,19 +26,23 @@ async function handleLogin() {
       })
     });
 
+    console.log('📡 Response status:', response.status);
     const data = await response.json();
+    console.log('📡 Response data:', data);
 
     if (!response.ok) {
+      console.error('❌ Login failed:', data.error);
       showToast('❌ ' + (data.error || 'Неправильный email или пароль'), 'error');
       return;
     }
 
+    console.log('✅ Login successful');
     state.setUser(data.user, data.token);
     hideLoginScreen();
     await loadAppData();
     showToast('✅ Добро пожаловать, ' + data.user.name + '!', 'success');
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
     showToast('❌ Ошибка входа: ' + error.message, 'error');
   }
 }
