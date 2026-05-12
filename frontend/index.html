@@ -46,7 +46,7 @@
 
             <button class="login-btn" id="loginBtn" type="button">Войти</button>
             <p style="text-align: center; margin-top: 15px; color: var(--gray); font-size: 14px;">
-                Нет аккаунта? <a href="#" onclick="showRegisterForm(event)" style="color: var(--primary); cursor: pointer; text-decoration: none;">Зарегистрироваться</a>
+                Нет аккаунта? <a href="#" data-action="show-register" style="color: var(--primary); cursor: pointer; text-decoration: none;">Зарегистрироваться</a>
             </p>
         </div>
 
@@ -85,7 +85,7 @@
 
             <button class="login-btn" id="registerBtn" type="button">Зарегистрироваться</button>
             <p style="text-align: center; margin-top: 15px; color: var(--gray); font-size: 14px;">
-                Уже есть аккаунт? <a href="#" onclick="showLoginForm(event)" style="color: var(--primary); cursor: pointer; text-decoration: none;">Войти</a>
+                Уже есть аккаунт? <a href="#" data-action="show-login" style="color: var(--primary); cursor: pointer; text-decoration: none;">Войти</a>
             </p>
         </div>
     </div>
@@ -248,18 +248,18 @@
                     <div class="table-header">
                         <div class="table-title">Все проекты</div>
                         <div class="table-controls">
-                            <select id="projectFilterStage" onchange="applyProjectFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <select id="projectFilterStage" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
                                 <option value="">По этапу: Все</option>
                                 <option value="В работе">В работе</option>
                                 <option value="Проблемный">Проблемный</option>
                                 <option value="На паузе">На паузе</option>
                                 <option value="Готово">Готово</option>
                             </select>
-                            <select id="projectFilterResponsible" onchange="applyProjectFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <select id="projectFilterResponsible" data-action="filter-projects" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
                                 <option value="">По ответственному: Все</option>
                             </select>
-                            <input type="text" class="search-input" id="projectSearch" placeholder="Поиск..." oninput="filterTable(this, 'projectsTable')">
-                            <button class="btn-secondary" onclick="exportCSV('projectsTable', 'projects.csv')">📥 Экспорт CSV</button>
+                            <input type="text" class="search-input" id="projectSearch" placeholder="Поиск..." data-table="projectsTable" data-action="filter-table">
+                            <button class="btn-secondary" data-table="projectsTable" data-action="export-csv">📥 Экспорт CSV</button>
                             <button class="btn-primary" id="addProjectBtn">+ Добавить проект</button>
                         </div>
                     </div>
@@ -292,7 +292,7 @@
                     <div class="table-header">
                         <div class="table-title">Данные аналитики</div>
                         <div class="table-controls">
-                            <button class="btn-secondary" onclick="exportCSV('analyticsTable', 'analytics.csv')">📥 Экспорт CSV</button>
+                            <button class="btn-secondary" data-table="analyticsTable" data-action="export-csv">📥 Экспорт CSV</button>
                             <button class="btn-primary" id="addAnalyticsBtn">+ Добавить запись</button>
                         </div>
                     </div>
@@ -341,14 +341,14 @@
                     <div class="table-header">
                         <div class="table-title">Задачи</div>
                         <div class="table-controls">
-                            <select id="taskFilterStage" onchange="applyTaskFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <select id="taskFilterStage" data-action="filter-tasks" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
                                 <option value="">По этапу: Все</option>
                                 <option value="В работе">В работе</option>
                                 <option value="Ждёт">Ждёт</option>
                                 <option value="Готово">Готово</option>
                             </select>
-                            <input type="text" class="search-input" id="taskSearch" placeholder="Поиск..." oninput="filterTable(this, 'tasksTable')">
-                            <button class="btn-secondary" onclick="exportCSV('tasksTable', 'tasks.csv')">📥 Экспорт CSV</button>
+                            <input type="text" class="search-input" id="taskSearch" placeholder="Поиск..." data-table="tasksTable" data-action="filter-table">
+                            <button class="btn-secondary" data-table="tasksTable" data-action="export-csv">📥 Экспорт CSV</button>
                             <button class="btn-primary" id="addTaskBtn">+ Добавить задачу</button>
                         </div>
                     </div>
@@ -378,8 +378,8 @@
                     <div class="table-header">
                         <div class="table-title">Сотрудники</div>
                         <div class="table-controls">
-                            <input type="text" class="search-input" id="employeeSearch" placeholder="Поиск..." oninput="filterTable(this, 'employeesTable')">
-                            <button class="btn-secondary" onclick="exportCSV('employeesTable', 'employees.csv')">📥 Экспорт CSV</button>
+                            <input type="text" class="search-input" id="employeeSearch" placeholder="Поиск..." data-table="employeesTable" data-action="filter-table">
+                            <button class="btn-secondary" data-table="employeesTable" data-action="export-csv">📥 Экспорт CSV</button>
                             <button class="btn-primary" id="addEmployeeBtn">+ Добавить сотрудника</button>
                         </div>
                     </div>
@@ -448,7 +448,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Скриншот работы</label>
-                                <input type="file" id="reportScreenshot" accept="image/*" onchange="previewScreenshot(this)">
+                                <input type="file" id="reportScreenshot" accept="image/*" data-action="preview-screenshot">
                                 <div id="screenshotPreview" style="margin-top: 10px;"></div>
                             </div>
                             <button class="btn-primary" id="submitReportBtn">Отправить отчёт</button>
@@ -464,16 +464,16 @@
                         </div>
                         <div style="padding: 15px 20px; background: #F9FAFB; border-bottom: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                             <label style="font-size: 12px; font-weight: 600; color: var(--gray); text-transform: uppercase;">Фильтры:</label>
-                            <input type="date" id="reportFilterDateFrom" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
-                            <input type="date" id="reportFilterDateTo" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
-                            <select id="reportFilterEmployee" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <input type="date" id="reportFilterDateFrom" data-action="filter-reports" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <input type="date" id="reportFilterDateTo" data-action="filter-reports" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <select id="reportFilterEmployee" data-action="filter-reports" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
                                 <option value="">Сотрудник: Все</option>
                             </select>
-                            <select id="reportFilterProject" onchange="applyReportFilters()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
+                            <select id="reportFilterProject" data-action="filter-reports" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;">
                                 <option value="">Проект: Все</option>
                             </select>
-                            <button class="btn-secondary" onclick="clearReportFilters()" style="margin-left: auto;">Очистить фильтры</button>
-                            <button class="btn-secondary" onclick="exportCSV('reportsListTable', 'reports.csv')">📥 Экспорт CSV</button>
+                            <button class="btn-secondary" data-action="clear-report-filters" style="margin-left: auto;">Очистить фильтры</button>
+                            <button class="btn-secondary" data-table="reportsListTable" data-action="export-csv">📥 Экспорт CSV</button>
                         </div>
                     </div>
                     <div class="table-section">
@@ -657,7 +657,7 @@
                             <p style="margin: 0; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; flex: 1;">Представь, что ты опытный рилсмейкер...
 Твоя задача — придумать заголовки для Reels.
 [Полный текст промпта в Регламенте]</p>
-                            <button class="btn-secondary" onclick="copyPrompt('Представь, что ты опытный рилсмейкер и контент-стратег...')" style="margin-left: 10px; white-space: nowrap;">📋 Копировать</button>
+                            <button class="btn-secondary" data-action="copy-prompt" data-prompt="Представь, что ты опытный рилсмейкер и контент-стратег..." style="margin-left: 10px; white-space: nowrap;">📋 Копировать</button>
                         </div>
 
                         <h3 id="guide-2" style="margin-top: 20px; margin-bottom: 15px;">2. Написание описаний</h3>
@@ -733,13 +733,13 @@
                         <div style="padding: 20px;">
                             <div class="form-group">
                                 <label>Базовая зарплата сотрудника (₽)</label>
-                                <input type="number" id="baseSalary" value="4000" min="0" step="100" onchange="updateFinanceParams()">
+                                <input type="number" id="baseSalary" value="4000" min="0" step="100" data-action="update-finance-params">
                                 <small style="color: var(--gray);">Базовая ставка за выполнение месячной нормы</small>
                             </div>
                             <div class="form-group">
                                 <label>Норма рилсов в месяц</label>
-                                <input type="number" id="baseReels" value="80" min="1" step="10" onchange="updateFinanceParams()">
-                                <small style="color: var(--gray);">Количество рилсов для получения базовой зарплаты</small>
+                                <input type="number" id="baseReels" value="80" min="1" step="10" data-action="update-finance-params">
+                                <small style="color: var(--gray);">Количество рилсов для получения базовую зарплаты</small>
                             </div>
                             <div style="background: #EFF6FF; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid var(--primary);">
                                 <strong>💡 Цена за рилс: <span id="pricePerReel" style="color: var(--primary); font-size: 18px;">50₽</span></strong>
@@ -747,7 +747,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Прочие расходы (₽/месяц)</label>
-                                <input type="number" id="otherExpenses" value="0" min="0" step="100" onchange="updateFinanceParams()">
+                                <input type="number" id="otherExpenses" value="0" min="0" step="100" data-action="update-finance-params">
                                 <small style="color: var(--gray);">Инструменты, софт и т.д.</small>
                             </div>
                         </div>

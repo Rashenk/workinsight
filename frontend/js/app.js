@@ -131,6 +131,11 @@ function setupEventListeners() {
 
   // Set up modal handlers
   setupModalHandlers();
+
+  // Event delegation for data-action buttons
+  document.addEventListener('click', handleDataActionClick);
+  document.addEventListener('change', handleDataActionChange);
+  document.addEventListener('input', handleDataActionInput);
 }
 
 function setupModalHandlers() {
@@ -233,6 +238,74 @@ function setupFinanceTabs() {
     financeReportTab.style.background = '';
     financeReportTab.style.color = '';
   });
+}
+
+function handleDataActionClick(e) {
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+
+  const action = target.dataset.action;
+
+  switch(action) {
+    case 'show-register':
+      e.preventDefault();
+      showRegisterForm(e);
+      break;
+    case 'show-login':
+      e.preventDefault();
+      showLoginForm(e);
+      break;
+    case 'export-csv':
+      e.preventDefault();
+      exportCSV(target.dataset.table, target.dataset.table + '.csv');
+      break;
+    case 'copy-prompt':
+      e.preventDefault();
+      copyPrompt(target.dataset.prompt);
+      break;
+    case 'clear-report-filters':
+      e.preventDefault();
+      clearReportFilters();
+      break;
+  }
+}
+
+function handleDataActionChange(e) {
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+
+  const action = target.dataset.action;
+
+  switch(action) {
+    case 'filter-projects':
+      applyProjectFilters();
+      break;
+    case 'filter-tasks':
+      applyTaskFilters();
+      break;
+    case 'filter-reports':
+      applyReportFilters();
+      break;
+    case 'preview-screenshot':
+      previewScreenshot(target);
+      break;
+    case 'update-finance-params':
+      updateFinanceParams();
+      break;
+  }
+}
+
+function handleDataActionInput(e) {
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+
+  const action = target.dataset.action;
+
+  switch(action) {
+    case 'filter-table':
+      filterTable(target, target.dataset.table);
+      break;
+  }
 }
 
 function renderSection(section) {
