@@ -276,6 +276,142 @@ async function renderEmployeeDashboard(section) {
 
 async function openAdminEditModal(userId, userData) {
   console.log('Opening admin edit modal for user', userId);
-  // TODO: Create a modal for editing specific user's reels
-  alert(`Редактирование для ${userData.name} - будет реализовано`);
+
+  try {
+    const summary = await api.get(`/daily-reels/summary/${userId}`);
+    const today = new Date().toISOString().split('T')[0];
+
+    let html = `
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" id="adminEditModal">
+        <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">Редактирование: ${userData.name}</h2>
+            <button style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray);" id="closeModal">✕</button>
+          </div>
+
+          <p style="color: var(--gray); margin: 0 0 20px 0;">
+            Текущий прогресс: <strong>${summary.totalReels}/80 рилсов</strong>
+          </p>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 20px;">
+            <h3 style="margin-top: 0; margin-bottom: 15px;">По проектам на сегодня (${today}):</h3>
+            <div style="display: grid; gap: 12px; margin-bottom: 20px;">
+    `;
+
+    for (const project of summary.summary) {
+      html += `
+        <div style="
+          background: #F9FAFB;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        ">
+          <div>
+            <h4 style="margin: 0; font-size: 14px;">${project.name}</h4>
+            <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--gray);">${project.platform}</p>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <input type="number"
+              class="admin-reel-input"
+              data-user-id="${userId}"
+              data-project-id="${project.id}"
+              data-date="${today}"
+              value="0"
+              min="0"
+              style="width: 60px; padding: 6px; border: 1px solid var(--border); border-radius: 4px; text-align: center;">
+            <button class="btn-sm admin-save-reel" data-user-id="${userId}" data-project-id="${project.id}" data-date="${today}">
+              ✓ Сохр.
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    html += `
+            </div>
+
+            <div style="border-top: 1px solid var(--border); padding-top: 15px;">
+              <h3 style="margin-top: 0; margin-bottom: 15px;">Добавить за другой день:</h3>
+              <div style="display: grid; gap: 10px;">
+                <input type="date" id="adminEditDate" value="${today}" style="padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                <select id="adminEditProject" style="padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                  <option value="">Выберите проект</option>
+                  ${summary.summary.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                </select>
+                <input type="number" id="adminEditCount" min="1" value="1" placeholder="Кол-во рилсов" style="padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                <button class="btn-primary" id="adminAddReel">Добавить</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn-secondary" id="closeModalBtn">Закрыть</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add modal to page
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = html;
+    document.body.appendChild(modalContainer);
+
+    // Event listeners
+    document.getElementById('closeModal').addEventListener('click', () => {
+      modalContainer.remove();
+    });
+
+    document.getElementById('closeModalBtn').addEventListener('click', () => {
+      modalContainer.remove();
+    });
+
+    // Save reel buttons
+    document.querySelectorAll('.admin-save-reel').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const input = e.target.previousElementSibling;
+        const count = parseInt(input.value) || 0;
+        const projectId = e.target.dataset.projectId;
+        const date = e.target.dataset.date;
+        const userId = e.target.dataset.userId;
+
+        try {
+          await api.post(`/daily-reels/add/${projectId}/${date}`, { count });
+          showToast('✅ Сохранено', 'success');
+          // Refresh modal
+          modalContainer.remove();
+          renderAdminDashboard(document.getElementById('dailyReelsSection'));
+        } catch (error) {
+          showToast('❌ Ошибка', 'error');
+        }
+      });
+    });
+
+    // Add reel button
+    document.getElementById('adminAddReel').addEventListener('click', async () => {
+      const date = document.getElementById('adminEditDate').value;
+      const projectId = document.getElementById('adminEditProject').value;
+      const count = parseInt(document.getElementById('adminEditCount').value) || 1;
+
+      if (!date || !projectId) {
+        showToast('⚠️ Выберите дату и проект', 'error');
+        return;
+      }
+
+      try {
+        await api.post(`/daily-reels/add/${projectId}/${date}`, { count });
+        showToast(`✅ Добавлено ${count} рилс`, 'success');
+        modalContainer.remove();
+        renderAdminDashboard(document.getElementById('dailyReelsSection'));
+      } catch (error) {
+        showToast('❌ Ошибка', 'error');
+      }
+    });
+
+  } catch (error) {
+    console.error('Error opening edit modal:', error);
+    showToast('❌ Ошибка загрузки', 'error');
+  }
 }
