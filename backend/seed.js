@@ -1,4 +1,4 @@
-const { runAsync, getAsync, allAsync } = require('./config/db');
+const { runAsync, getAsync, allAsync, encryptPassword } = require('./config/db');
 
 async function seedData() {
   console.log('🌱 Starting to seed test data...');
@@ -99,12 +99,14 @@ async function seedData() {
       const platform = platforms[Math.floor(Math.random() * platforms.length)];
       const tgLink = `https://t.me/account_${i}`;
       const login = `user_${i}@email.com`;
+      const password = `password_${i}@123`;
       const note = `${platform} account для проекта ${i}`;
+      const encrypted = encryptPassword(password);
 
       await runAsync(
         `INSERT INTO access (project_id, tg_link, login, password_encrypted, note)
          VALUES (?, ?, ?, ?, ?)`,
-        [projectId, tgLink, login, 'encrypted_password_' + i, note]
+        [projectId, tgLink, login, encrypted, note]
       );
       accessCount++;
     }
