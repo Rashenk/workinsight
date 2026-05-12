@@ -49,11 +49,13 @@ async function loadAppData() {
     const reports = await api.get('/reports');
     state.reports = reports || [];
 
-    // Load employees (admin only)
-    if (state.isAdmin()) {
-      const employees = await api.get('/employees');
-      state.employees = employees || [];
+    // Load employees
+    const employees = await api.get('/employees');
+    state.employees = employees || [];
+    state.users = employees || [];
 
+    // Load access (admin only)
+    if (state.isAdmin()) {
       const access = await api.get('/access');
       state.access = access || [];
     }
@@ -664,12 +666,31 @@ function renderAccess() {
   });
 }
 
-// Placeholder CRUD functions - implement later with API calls
-function openProjectModal() { openModal('projectModal'); }
-function openTaskModal() { openModal('taskModal'); }
+// Modal opening functions with dropdown population
+function openProjectModal() {
+  openModal('projectModal');
+  populateDropdown('projectResponsible', state.users || []);
+  populateDropdown('projectPlatform', ['Instagram', 'TikTok', 'YouTube', 'Pinterest']);
+}
+
+function openTaskModal() {
+  openModal('taskModal');
+  populateDropdown('taskProject', state.projects || []);
+  populateDropdown('taskResponsible', state.users || []);
+}
+
+function openAnalyticsModal() {
+  openModal('analyticsModal');
+  populateDropdown('analyticsProject', state.projects || []);
+  populateDropdown('analyticsResponsible', state.users || []);
+}
+
 function openEmployeeModal() { openModal('employeeModal'); }
-function openAnalyticsModal() { openModal('analyticsModal'); }
-function openAccessModal() { openModal('accessModal'); }
+
+function openAccessModal() {
+  openModal('accessModal');
+  populateDropdown('accessProject', state.projects || []);
+}
 
 function updateFinanceParams() {
   const baseSalary = parseFloat(document.getElementById('baseSalary')?.value || 4000);
