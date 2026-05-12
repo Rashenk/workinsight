@@ -125,10 +125,14 @@ function setupEventListeners() {
   }
 
   // Navigation items (only if user is logged in)
-  document.querySelectorAll('.nav-item').forEach(item => {
+  const navItems = document.querySelectorAll('.nav-item');
+  console.log('🔗 Found nav items:', navItems.length);
+  navItems.forEach(item => {
     item.addEventListener('click', () => {
       const section = item.dataset.section;
+      console.log('🖱️ Nav item clicked, section:', section);
       if (section) {
+        console.log('📄 Calling renderSection with:', section);
         renderSection(section);
       }
     });
