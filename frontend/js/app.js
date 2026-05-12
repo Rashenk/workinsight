@@ -388,7 +388,7 @@ function renderProjects() {
 
   let projects = state.projects;
   if (!state.isAdmin()) {
-    projects = projects.filter(p => p.responsible_id === /* get from server */);
+    projects = projects.filter(p => p.responsible_id === state.currentUser?.id);
   }
 
   projects.forEach((project, index) => {
@@ -418,7 +418,7 @@ function renderAnalytics() {
 
   let analytics = state.analytics;
   if (!state.isAdmin()) {
-    analytics = analytics.filter(a => a.responsible_id === /* get from server */);
+    analytics = analytics.filter(a => a.responsible_id === state.currentUser?.id);
   }
 
   analytics.forEach(a => {
@@ -490,7 +490,7 @@ function renderReports() {
 
   let reports = state.reports;
   if (!state.isAdmin()) {
-    reports = reports.filter(r => r.user_id === /* get from server */);
+    reports = reports.filter(r => r.user_id === state.currentUser?.id);
   }
 
   reports.forEach(report => {
