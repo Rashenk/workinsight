@@ -1,36 +1,37 @@
 const express = require('express');
 const { getAsync, allAsync, runAsync } = require('../config/db');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get daily reels for current user and their assigned projects
+// Get daily reels with reel counts for current month
 router.get('/', verifyToken, async (req, res) => {
   try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const monthStart = `${year}-${month}-01`;
+
     let query = `
-      SELECT p.id as project_id,
+      SELECT dr.*,
              p.name as project_name,
              p.platform,
              u.id as responsible_id,
-             u.name as responsible_name,
-             dr.id as reel_id,
-             dr.date,
-             dr.completed,
-             dr.notes
-      FROM projects p
-      LEFT JOIN users u ON p.responsible_id = u.id
-      LEFT JOIN daily_reels dr ON p.id = dr.project_id AND u.id = dr.responsible_id
-      WHERE 1=1
+             u.name as responsible_name
+      FROM daily_reels dr
+      JOIN projects p ON dr.project_id = p.id
+      LEFT JOIN users u ON dr.responsible_id = u.id
+      WHERE dr.date >= ?
     `;
-    const params = [];
+    const params = [monthStart];
 
-    // If not admin, only show assigned projects
+    // If not admin, only show own records
     if (req.user.role !== 'admin') {
-      query += ` AND p.responsible_id = ?`;
+      query += ` AND dr.responsible_id = ?`;
       params.push(req.user.id);
     }
 
-    query += ` ORDER BY dr.date DESC, p.name ASC LIMIT 500`;
+    query += ` ORDER BY dr.date DESC, p.name ASC`;
 
     const reels = await allAsync(query, params);
     res.json(reels);
@@ -39,119 +40,142 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Get daily reels for specific project
-router.get('/project/:projectId', verifyToken, async (req, res) => {
+// Get monthly summary for a specific user
+router.get('/summary/:userId', verifyToken, async (req, res) => {
   try {
-    const { projectId } = req.params;
+    const { userId } = req.params;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const monthStart = `${year}-${month}-01`;
 
-    const reels = await allAsync(
-      `SELECT dr.*,
-              p.name as project_name,
-              u.name as responsible_name
-       FROM daily_reels dr
-       JOIN projects p ON dr.project_id = p.id
-       JOIN users u ON dr.responsible_id = u.id
-       WHERE dr.project_id = ?
-       ORDER BY dr.date DESC`,
-      [projectId]
+    const summary = await allAsync(
+      `SELECT p.id, p.name, p.platform,
+              COALESCE(SUM(dr.reel_count), 0) as total_reels
+       FROM projects p
+       LEFT JOIN daily_reels dr ON p.id = dr.project_id
+         AND dr.responsible_id = ?
+         AND dr.date >= ?
+       WHERE p.responsible_id = ?
+       GROUP BY p.id
+       ORDER BY p.name`,
+      [userId, monthStart, userId]
     );
 
-    res.json(reels);
+    const totalReels = summary.reduce((sum, p) => sum + p.total_reels, 0);
+
+    res.json({
+      summary,
+      totalReels,
+      monthlyGoal: 80,
+      remaining: Math.max(0, 80 - totalReels)
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Toggle reel completion for today
-router.post('/toggle/:projectId', verifyToken, async (req, res) => {
+// Get admin dashboard - all users with their monthly progress
+router.get('/admin/dashboard', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { projectId } = req.params;
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const monthStart = `${year}-${month}-01`;
+
+    const dashboard = await allAsync(
+      `SELECT u.id, u.name, u.email,
+              COALESCE(SUM(dr.reel_count), 0) as total_reels
+       FROM users u
+       LEFT JOIN daily_reels dr ON u.id = dr.responsible_id
+         AND dr.date >= ?
+       WHERE u.role = 'employee'
+       GROUP BY u.id
+       ORDER BY total_reels DESC`,
+      [monthStart]
+    );
+
+    const enriched = dashboard.map(emp => ({
+      ...emp,
+      monthlyGoal: 80,
+      remaining: Math.max(0, 80 - emp.total_reels),
+      percentage: Math.round((emp.total_reels / 80) * 100)
+    }));
+
+    res.json(enriched);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add or update reel count for a specific day
+router.post('/add/:projectId/:date', verifyToken, async (req, res) => {
+  try {
+    const { projectId, date } = req.params;
+    const { count = 1 } = req.body;
     const userId = req.user.id;
 
     // Check if record exists
     const existing = await getAsync(
       `SELECT * FROM daily_reels
        WHERE project_id = ? AND responsible_id = ? AND date = ?`,
-      [projectId, userId, today]
+      [projectId, userId, date]
     );
 
     if (existing) {
-      // Toggle completion
+      // Update existing record
+      const newCount = existing.reel_count + count;
       await runAsync(
-        `UPDATE daily_reels SET completed = NOT completed, updated_at = datetime('now')
+        `UPDATE daily_reels
+         SET reel_count = ?, updated_at = datetime('now')
          WHERE id = ?`,
-        [existing.id]
+        [Math.max(0, newCount), existing.id]
       );
-
-      const updated = await getAsync('SELECT * FROM daily_reels WHERE id = ?', [existing.id]);
-      res.json(updated);
     } else {
-      // Create new record with completed = 1
+      // Create new record
       await runAsync(
-        `INSERT INTO daily_reels (project_id, responsible_id, date, completed)
+        `INSERT INTO daily_reels (project_id, responsible_id, date, reel_count)
          VALUES (?, ?, ?, ?)`,
-        [projectId, userId, today, 1]
+        [projectId, userId, date, count]
       );
-
-      const created = await getAsync(
-        `SELECT * FROM daily_reels
-         WHERE project_id = ? AND responsible_id = ? AND date = ?`,
-        [projectId, userId, today]
-      );
-      res.json(created);
     }
+
+    const record = await getAsync(
+      `SELECT * FROM daily_reels
+       WHERE project_id = ? AND responsible_id = ? AND date = ?`,
+      [projectId, userId, date]
+    );
+
+    res.json(record);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get monthly checklist for a project
-router.get('/monthly/:projectId', verifyToken, async (req, res) => {
+// Set reel count to specific value (admin only)
+router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { projectId } = req.params;
-    const { year = new Date().getFullYear(), month = new Date().getMonth() + 1 } = req.query;
+    const { reel_count, notes } = req.body;
 
-    const userId = req.user.id;
-
-    // Get all days in the month
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const checklist = [];
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-      const record = await getAsync(
-        `SELECT * FROM daily_reels
-         WHERE project_id = ? AND responsible_id = ? AND date = ?`,
-        [projectId, userId, dateStr]
-      );
-
-      checklist.push({
-        date: dateStr,
-        day,
-        completed: record ? record.completed : false,
-        notes: record ? record.notes : ''
-      });
-    }
-
-    res.json(checklist);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update notes for a daily reel
-router.put('/:id', verifyToken, async (req, res) => {
-  try {
-    const { notes } = req.body;
     await runAsync(
-      `UPDATE daily_reels SET notes = ?, updated_at = datetime('now') WHERE id = ?`,
-      [notes || '', req.params.id]
+      `UPDATE daily_reels
+       SET reel_count = ?, notes = ?, updated_at = datetime('now')
+       WHERE id = ?`,
+      [reel_count || 0, notes || '', req.params.id]
     );
 
     const updated = await getAsync('SELECT * FROM daily_reels WHERE id = ?', [req.params.id]);
     res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a daily reel record (admin only)
+router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    await runAsync('DELETE FROM daily_reels WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

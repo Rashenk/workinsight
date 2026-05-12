@@ -145,7 +145,7 @@ async function initializeDatabase() {
         project_id INTEGER NOT NULL,
         responsible_id INTEGER NOT NULL,
         date TEXT NOT NULL,
-        completed BOOLEAN DEFAULT 0,
+        reel_count INTEGER DEFAULT 0,
         notes TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
