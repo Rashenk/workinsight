@@ -184,6 +184,22 @@ function setupModalHandlers() {
     addAccessBtn.addEventListener('click', openAccessModal);
   }
 
+  // Form submit handlers (create / update)
+  const projectForm = document.getElementById('projectForm');
+  if (projectForm) projectForm.addEventListener('submit', saveProject);
+
+  const taskForm = document.getElementById('taskForm');
+  if (taskForm) taskForm.addEventListener('submit', saveTask);
+
+  const employeeForm = document.getElementById('employeeForm');
+  if (employeeForm) employeeForm.addEventListener('submit', saveEmployee);
+
+  const analyticsForm = document.getElementById('analyticsForm');
+  if (analyticsForm) analyticsForm.addEventListener('submit', saveAnalytics);
+
+  const accessForm = document.getElementById('accessForm');
+  if (accessForm) accessForm.addEventListener('submit', saveAccess);
+
   // Report form
   const newReportTab = document.getElementById('newReportTab');
   const allReportsTab = document.getElementById('allReportsTab');
@@ -700,28 +716,324 @@ function renderAccess() {
 
 // Modal opening functions with dropdown population
 function openProjectModal() {
+  state.editingId = null;
+  document.getElementById('projectForm').reset();
   openModal('projectModal');
   populateDropdown('projectResponsible', state.users || []);
   populateDropdown('projectPlatform', ['Instagram', 'TikTok', 'YouTube', 'Pinterest']);
 }
 
 function openTaskModal() {
+  state.editingId = null;
+  document.getElementById('taskForm').reset();
   openModal('taskModal');
   populateDropdown('taskProject', state.projects || []);
   populateDropdown('taskResponsible', state.users || []);
 }
 
 function openAnalyticsModal() {
+  state.editingId = null;
+  document.getElementById('analyticsForm').reset();
   openModal('analyticsModal');
   populateDropdown('analyticsProject', state.projects || []);
   populateDropdown('analyticsResponsible', state.users || []);
 }
 
-function openEmployeeModal() { openModal('employeeModal'); }
+function openEmployeeModal() {
+  state.editingId = null;
+  document.getElementById('employeeForm').reset();
+  openModal('employeeModal');
+}
 
 function openAccessModal() {
+  state.editingId = null;
+  document.getElementById('accessForm').reset();
   openModal('accessModal');
   populateDropdown('accessProject', state.projects || []);
+}
+
+// ===== Projects CRUD =====
+async function saveProject(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('projectName').value.trim(),
+    stage: document.getElementById('projectStage').value,
+    responsible_id: parseInt(document.getElementById('projectResponsible').value) || null,
+    platform: document.getElementById('projectPlatform').value,
+    priority: parseInt(document.getElementById('projectPriority').value) || 5,
+    plan_reels: parseInt(document.getElementById('projectPlanReels').value) || 0,
+    done_reels: parseInt(document.getElementById('projectDoneReels').value) || 0,
+    start_date: document.getElementById('projectStartDate').value,
+    comment: document.getElementById('projectComment').value
+  };
+
+  const id = state.editingId;
+  const result = id
+    ? await api.put(`/projects/${id}`, data)
+    : await api.post('/projects', data);
+  if (!result) return;
+
+  closeModal('projectModal');
+  state.editingId = null;
+  showToast(id ? 'Проект обновлён' : 'Проект создан', 'success');
+  state.projects = (await api.get('/projects')) || [];
+  renderProjects();
+}
+
+function editProject(id) {
+  const project = state.projects.find(p => p.id === id);
+  if (!project) {
+    showToast('Проект не найден', 'error');
+    return;
+  }
+  openProjectModal();
+  state.editingId = id;
+  document.getElementById('projectName').value = project.name || '';
+  document.getElementById('projectStage').value = project.stage || '';
+  document.getElementById('projectPriority').value = project.priority ?? 5;
+  document.getElementById('projectPlanReels').value = project.plan_reels ?? 0;
+  document.getElementById('projectDoneReels').value = project.done_reels ?? 0;
+  document.getElementById('projectStartDate').value = project.start_date || '';
+  document.getElementById('projectComment').value = project.comment || '';
+  document.getElementById('projectResponsible').value = project.responsible_id || '';
+  document.getElementById('projectPlatform').value = project.platform || '';
+}
+
+async function deleteProject(id) {
+  const result = await api.delete(`/projects/${id}`);
+  if (result === null) return;
+  showToast('Проект удалён', 'success');
+  state.projects = state.projects.filter(p => p.id !== id);
+  renderProjects();
+}
+
+// ===== Tasks CRUD =====
+async function saveTask(e) {
+  e.preventDefault();
+  const projectId = parseInt(document.getElementById('taskProject').value) || null;
+  const responsibleId = parseInt(document.getElementById('taskResponsible').value) || null;
+  const project = state.projects.find(p => p.id === projectId);
+  const responsible = (state.users || []).find(u => u.id === responsibleId);
+
+  const data = {
+    project_id: projectId,
+    project_name: project?.name || '',
+    task_name: document.getElementById('taskName').value.trim(),
+    start_date: document.getElementById('taskStartDate').value,
+    end_date: document.getElementById('taskEndDate').value,
+    responsible_id: responsibleId,
+    responsible_name: responsible?.name || '',
+    stage: document.getElementById('taskStage').value,
+    comment: document.getElementById('taskComment').value
+  };
+
+  const id = state.editingId;
+  const result = id
+    ? await api.put(`/tasks/${id}`, data)
+    : await api.post('/tasks', data);
+  if (!result) return;
+
+  closeModal('taskModal');
+  state.editingId = null;
+  showToast(id ? 'Задача обновлена' : 'Задача создана', 'success');
+  state.tasks = (await api.get('/tasks')) || [];
+  renderTasks();
+}
+
+function editTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) {
+    showToast('Задача не найдена', 'error');
+    return;
+  }
+  openTaskModal();
+  state.editingId = id;
+  document.getElementById('taskProject').value = task.project_id || '';
+  document.getElementById('taskName').value = task.task_name || '';
+  document.getElementById('taskStartDate').value = task.start_date || '';
+  document.getElementById('taskEndDate').value = task.end_date || '';
+  document.getElementById('taskResponsible').value = task.responsible_id || '';
+  document.getElementById('taskStage').value = task.stage || '';
+  document.getElementById('taskComment').value = task.comment || '';
+}
+
+async function deleteTask(id) {
+  const result = await api.delete(`/tasks/${id}`);
+  if (result === null) return;
+  showToast('Задача удалена', 'success');
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  renderTasks();
+}
+
+// ===== Employees CRUD =====
+async function saveEmployee(e) {
+  e.preventDefault();
+  const firstName = document.getElementById('employeeFirstName').value.trim();
+  const lastName = document.getElementById('employeeLastName').value.trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+  const data = {
+    name: fullName,
+    city: document.getElementById('employeeCity').value.trim(),
+    employment: document.getElementById('employeeEmployment').value,
+    status: document.getElementById('employeeStatus').value,
+    email: '',
+    phone: ''
+  };
+
+  if (!data.name) {
+    showToast('Укажите имя', 'error');
+    return;
+  }
+
+  const id = state.editingId;
+  const result = id
+    ? await api.put(`/employees/${id}`, data)
+    : await api.post('/employees', data);
+  if (!result) return;
+
+  closeModal('employeeModal');
+  state.editingId = null;
+  showToast(id ? 'Сотрудник обновлён' : 'Сотрудник добавлен', 'success');
+  state.employees = (await api.get('/employees')) || [];
+  state.users = state.employees;
+  renderEmployees();
+}
+
+function editEmployee(id) {
+  const employee = state.employees.find(e => e.id === id);
+  if (!employee) {
+    showToast('Сотрудник не найден', 'error');
+    return;
+  }
+  openEmployeeModal();
+  state.editingId = id;
+  const parts = (employee.name || '').split(' ');
+  document.getElementById('employeeFirstName').value = parts[0] || '';
+  document.getElementById('employeeLastName').value = parts.slice(1).join(' ') || '';
+  document.getElementById('employeeCity').value = employee.city || '';
+  document.getElementById('employeeEmployment').value = employee.employment || '';
+  document.getElementById('employeeStatus').value = employee.status || '';
+}
+
+async function deleteEmployee(id) {
+  const result = await api.delete(`/employees/${id}`);
+  if (result === null) return;
+  showToast('Сотрудник удалён', 'success');
+  state.employees = state.employees.filter(e => e.id !== id);
+  state.users = state.employees;
+  renderEmployees();
+}
+
+// ===== Analytics CRUD =====
+async function saveAnalytics(e) {
+  e.preventDefault();
+  const projectId = parseInt(document.getElementById('analyticsProject').value) || null;
+  const responsibleId = parseInt(document.getElementById('analyticsResponsible').value) || null;
+  const project = state.projects.find(p => p.id === projectId);
+  const responsible = (state.users || []).find(u => u.id === responsibleId);
+
+  const data = {
+    project_id: projectId,
+    project_name: project?.name || '',
+    responsible_id: responsibleId,
+    responsible_name: responsible?.name || '',
+    start_date: document.getElementById('analyticsStartDate').value,
+    views: parseInt(document.getElementById('analyticsViews').value) || 0,
+    subs: parseInt(document.getElementById('analyticsSubs').value) || 0,
+    total_subs: parseInt(document.getElementById('analyticsTotalSubs').value) || 0,
+    interactions: parseInt(document.getElementById('analyticsInteractions').value) || 0,
+    period: document.getElementById('analyticsPeriod').value
+  };
+
+  const id = state.editingId;
+  const result = id
+    ? await api.put(`/analytics/${id}`, data)
+    : await api.post('/analytics', data);
+  if (!result) return;
+
+  closeModal('analyticsModal');
+  state.editingId = null;
+  showToast(id ? 'Запись обновлена' : 'Запись создана', 'success');
+  state.analytics = (await api.get('/analytics')) || [];
+  renderAnalytics();
+}
+
+function editAnalytics(id) {
+  const a = state.analytics.find(x => x.id === id);
+  if (!a) {
+    showToast('Запись не найдена', 'error');
+    return;
+  }
+  openAnalyticsModal();
+  state.editingId = id;
+  document.getElementById('analyticsProject').value = a.project_id || '';
+  document.getElementById('analyticsResponsible').value = a.responsible_id || '';
+  document.getElementById('analyticsStartDate').value = a.start_date || '';
+  document.getElementById('analyticsViews').value = a.views ?? 0;
+  document.getElementById('analyticsSubs').value = a.subs ?? 0;
+  document.getElementById('analyticsTotalSubs').value = a.total_subs ?? 0;
+  document.getElementById('analyticsInteractions').value = a.interactions ?? 0;
+  document.getElementById('analyticsPeriod').value = a.period || '';
+}
+
+async function deleteAnalytics(id) {
+  const result = await api.delete(`/analytics/${id}`);
+  if (result === null) return;
+  showToast('Запись удалена', 'success');
+  state.analytics = state.analytics.filter(a => a.id !== id);
+  renderAnalytics();
+}
+
+// ===== Access CRUD =====
+async function saveAccess(e) {
+  e.preventDefault();
+  const projectId = parseInt(document.getElementById('accessProject').value) || null;
+  const project = state.projects.find(p => p.id === projectId);
+
+  const data = {
+    project_id: projectId,
+    project_name: project?.name || '',
+    tg_link: document.getElementById('accessTgLink').value,
+    login: document.getElementById('accessLogin').value,
+    password: document.getElementById('accessPassword').value,
+    note: document.getElementById('accessNote').value
+  };
+
+  const id = state.editingId;
+  const result = id
+    ? await api.put(`/access/${id}`, data)
+    : await api.post('/access', data);
+  if (!result) return;
+
+  closeModal('accessModal');
+  state.editingId = null;
+  showToast(id ? 'Доступ обновлён' : 'Доступ добавлен', 'success');
+  state.access = (await api.get('/access')) || [];
+  renderAccess();
+}
+
+function editAccess(id) {
+  const item = state.access.find(a => a.id === id);
+  if (!item) {
+    showToast('Доступ не найден', 'error');
+    return;
+  }
+  openAccessModal();
+  state.editingId = id;
+  document.getElementById('accessProject').value = item.project_id || '';
+  document.getElementById('accessTgLink').value = item.tg_link || '';
+  document.getElementById('accessLogin').value = item.login || '';
+  document.getElementById('accessPassword').value = item.password || '';
+  document.getElementById('accessNote').value = item.note || '';
+}
+
+async function deleteAccess(id) {
+  const result = await api.delete(`/access/${id}`);
+  if (result === null) return;
+  showToast('Доступ удалён', 'success');
+  state.access = state.access.filter(a => a.id !== id);
+  renderAccess();
 }
 
 function updateFinanceParams() {

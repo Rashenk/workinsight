@@ -95,6 +95,10 @@ function previewScreenshot(input) {
 }
 
 function copyPrompt(text) {
+  if (text && text.startsWith('#')) {
+    const el = document.getElementById(text.slice(1));
+    if (el) text = el.innerText;
+  }
   navigator.clipboard.writeText(text);
   showToast('Скопировано в буфер обмена', 'success');
 }
