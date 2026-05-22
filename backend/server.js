@@ -14,6 +14,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
       fontSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
@@ -43,11 +44,19 @@ app.use('/api/finance', require('./routes/finance'));
 app.use('/api/access', require('./routes/access'));
 app.use('/api/daily-reels', require('./routes/daily-reels'));
 
+// 404 for unknown API endpoints (must come after all API routers)
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
 // Serve static files from frontend
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// SPA fallback
+// SPA fallback: serve the app for navigational requests; missing asset paths get a real 404
 app.get('*', (req, res) => {
+  if (path.extname(req.path)) {
+    return res.status(404).send('Not found');
+  }
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 

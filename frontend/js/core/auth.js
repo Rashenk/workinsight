@@ -1,22 +1,15 @@
 // Authentication functions
 
 async function handleLogin() {
-  console.log('🔐 handleLogin called');
-
   const emailInput = document.getElementById('userName');
   const passwordInput = document.getElementById('userPassword');
 
-  console.log('📝 Inputs found:', { emailInput: !!emailInput, passwordInput: !!passwordInput });
-  console.log('📝 Values:', { email: emailInput?.value, password: passwordInput?.value ? '***' : 'empty' });
-
   if (!emailInput?.value || !passwordInput?.value) {
-    console.warn('❌ Empty inputs');
     showToast('Введите email и пароль', 'error');
     return;
   }
 
   try {
-    console.log('🌐 Sending login request...');
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,17 +19,13 @@ async function handleLogin() {
       })
     });
 
-    console.log('📡 Response status:', response.status);
     const data = await response.json();
-    console.log('📡 Response data:', data);
 
     if (!response.ok) {
-      console.error('❌ Login failed:', data.error);
       showToast('❌ ' + (data.error || 'Неправильный email или пароль'), 'error');
       return;
     }
 
-    console.log('✅ Login successful');
     state.setUser(data.user, data.token);
     hideLoginScreen();
     await loadAppData();
@@ -63,6 +52,23 @@ async function handleRegister() {
   if (!email || !name || !password) {
     showToast('❌ Заполните обязательные поля', 'error');
     return;
+  }
+
+  // Basic name validation: require at least first name and last name (two words)
+  const nameParts = name.split(/\s+/).filter(Boolean);
+  if (nameParts.length < 2 || name.length < 3) {
+    showToast('❌ Укажите полное имя (имя и фамилия)', 'error');
+    return;
+  }
+
+  // Basic phone validation (Russian-friendly): +7XXXXXXXXXX or 8XXXXXXXXXX or 9XXXXXXXXX
+  if (phone) {
+    const phoneDigits = phone.replace(/[^0-9]/g, '');
+    const phoneRegex = /^(7|8)?\d{10}$/; // allows 10 digits with optional leading 7 or 8
+    if (!phoneRegex.test(phoneDigits)) {
+      showToast('❌ Неверный формат телефона. Пример: +7 910 123-45-67', 'error');
+      return;
+    }
   }
 
   if (password !== passwordConfirm) {

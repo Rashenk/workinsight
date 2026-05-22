@@ -1,10 +1,20 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const { getAsync, runAsync } = require('../config/db');
 const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Throttle credential endpoints to slow down brute-force attempts
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много попыток. Повторите через 15 минут.' }
+});
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -14,7 +24,7 @@ const generateToken = (user) => {
   );
 };
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { email, name, phone, password, passwordConfirm } = req.body;
 
   if (!email || !name || !password) {
@@ -51,7 +61,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {

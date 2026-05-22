@@ -4,7 +4,7 @@ const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/params', verifyToken, async (req, res) => {
+router.get('/params', verifyToken, requireAdmin, async (req, res) => {
   try {
     const params = await getAsync('SELECT * FROM finance_params WHERE id = 1');
     res.json(params || { id: 1, base_salary: 4000, base_reels: 80, other_expenses: 0 });

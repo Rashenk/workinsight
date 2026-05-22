@@ -115,6 +115,16 @@ router.post('/add/:projectId/:date', verifyToken, async (req, res) => {
     const { count = 1 } = req.body;
     const userId = req.user.id;
 
+    // Verify that the project is assigned to this user (or user is admin)
+    const project = await getAsync('SELECT id, responsible_id FROM projects WHERE id = ?', [projectId]);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    if (req.user.role !== 'admin' && project.responsible_id !== userId) {
+      return res.status(403).json({ error: 'Project not assigned to you' });
+    }
+
     // Check if record exists
     const existing = await getAsync(
       `SELECT * FROM daily_reels

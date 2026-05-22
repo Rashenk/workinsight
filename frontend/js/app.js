@@ -3,8 +3,6 @@
 let chartCompare, chartStages, chartViews, chartInteractions, chartIncome, chartProfitMargin;
 
 async function initializeApp() {
-  console.log('🚀 Initializing app...');
-
   // Setup login/register buttons FIRST (before checking token)
   setupEventListeners();
 
@@ -12,21 +10,17 @@ async function initializeApp() {
   const token = api.getToken();
 
   if (token) {
-    console.log('📍 Found token, verifying...');
     // Verify token is still valid
     const user = await api.get('/auth/me');
     if (user) {
-      console.log('✅ User authenticated:', user.name);
       state.setUser(user, token);
       hideLoginScreen();
       await loadAppData();
       renderSection('dashboard');
     } else {
-      console.log('❌ Token invalid, showing login');
       showLoginScreen();
     }
   } else {
-    console.log('📍 No token found, showing login screen');
     showLoginScreen();
   }
 }
@@ -82,57 +76,44 @@ async function loadAppData() {
 }
 
 function updateUserDisplay() {
-  document.getElementById('userName2').textContent = state.currentUser;
-  document.getElementById('userRole2').textContent = state.userRole === 'admin' ? '🔐 Администратор' : '👥 Сотрудник';
+  const userNameEl = document.getElementById('userName2');
+  if (userNameEl) userNameEl.textContent = state.currentUser || '';
+  const userRoleEl = document.getElementById('userRole2');
+  if (userRoleEl) userRoleEl.textContent = state.userRole === 'admin' ? '🔐 Администратор' : '👥 Сотрудник';
 }
 
 function updateAdminSection() {
   const adminSection = document.getElementById('adminSection');
-  if (state.isAdmin()) {
-    adminSection.style.display = 'block';
-  } else {
-    adminSection.style.display = 'none';
+  if (adminSection) {
+    adminSection.style.display = state.isAdmin() ? 'block' : 'none';
   }
+
+  // Toggle visibility of create buttons based on role
+  ['addProjectBtn','addTaskBtn','addEmployeeBtn','addAnalyticsBtn','addAccessBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = state.isAdmin() ? '' : 'none';
+  });
 }
 
 function setupEventListeners() {
-  console.log('🔧 Setting up event listeners...');
-
   // Login button - ALWAYS setup even on login screen
   const loginBtn = document.getElementById('loginBtn');
-  console.log('🔘 Login button found:', !!loginBtn);
   if (loginBtn) {
-    console.log('✅ Adding click listener to loginBtn');
-    loginBtn.addEventListener('click', () => {
-      console.log('🖱️ Login button clicked!');
-      handleLogin();
-    });
-  } else {
-    console.error('❌ Login button NOT found!');
+    loginBtn.addEventListener('click', () => handleLogin());
   }
 
   // Register button - ALWAYS setup even on login screen
   const registerBtn = document.getElementById('registerBtn');
-  console.log('🔘 Register button found:', !!registerBtn);
   if (registerBtn) {
-    console.log('✅ Adding click listener to registerBtn');
-    registerBtn.addEventListener('click', () => {
-      console.log('🖱️ Register button clicked!');
-      handleRegister();
-    });
-  } else {
-    console.warn('⚠️ Register button NOT found');
+    registerBtn.addEventListener('click', () => handleRegister());
   }
 
   // Navigation items (only if user is logged in)
   const navItems = document.querySelectorAll('.nav-item');
-  console.log('🔗 Found nav items:', navItems.length);
   navItems.forEach(item => {
     item.addEventListener('click', () => {
       const section = item.dataset.section;
-      console.log('🖱️ Nav item clicked, section:', section);
       if (section) {
-        console.log('📄 Calling renderSection with:', section);
         renderSection(section);
       }
     });
@@ -199,6 +180,11 @@ function setupModalHandlers() {
 
   const accessForm = document.getElementById('accessForm');
   if (accessForm) accessForm.addEventListener('submit', saveAccess);
+
+  const submitReportBtn = document.getElementById('submitReportBtn');
+  if (submitReportBtn) {
+    submitReportBtn.addEventListener('click', submitReport);
+  }
 
   // Report form
   const newReportTab = document.getElementById('newReportTab');
@@ -462,18 +448,17 @@ function renderDashboardTable() {
 
   // Filter for current user if not admin
   let projects = state.projects;
-  if (!state.isAdmin()) {
-    // TODO: Get current user ID from server
-    projects = projects.filter(p => p.responsible_id === state.currentUser?.id);
+    if (!state.isAdmin()) {
+      projects = projects.filter(p => p.responsible_id === state.currentUserId);
   }
 
   projects.filter(p => p.stage === 'В работе').forEach(project => {
     const progress = project.plan_reels > 0 ? Math.round((project.done_reels / project.plan_reels) * 100) : 0;
     tbody.innerHTML += `
       <tr>
-        <td>${project.name}</td>
-        <td>${project.responsible_name}</td>
-        <td>${project.platform}</td>
+        <td>${escapeHtml(project.name)}</td>
+        <td>${escapeHtml(project.responsible_name)}</td>
+        <td>${escapeHtml(project.platform)}</td>
         <td>${project.plan_reels}</td>
         <td>${project.done_reels}</td>
         <td>${progress}%</td>
@@ -546,33 +531,25 @@ function renderDashboardCharts() {
 }
 
 function renderProjects() {
-  console.log('📊 renderProjects called');
   const tbody = document.getElementById('projectsTable');
-  if (!tbody) {
-    console.error('❌ projectsTable not found');
-    return;
-  }
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   let projects = state.projects;
-  console.log('📋 Total projects:', projects.length);
-  console.log('👤 Is admin:', state.isAdmin());
 
   if (!state.isAdmin()) {
-    projects = projects.filter(p => p.responsible_id === state.currentUser?.id);
+      projects = projects.filter(p => p.responsible_id === state.currentUserId);
   }
-
-  console.log('📋 Filtered projects:', projects.length);
 
   projects.forEach((project, index) => {
     const progress = project.plan_reels > 0 ? Math.round((project.done_reels / project.plan_reels) * 100) : 0;
     tbody.innerHTML += `
       <tr>
         <td>${index + 1}</td>
-        <td>${project.name}</td>
-        <td>${project.stage}</td>
-        <td>${project.responsible_name}</td>
-        <td>${project.platform}</td>
+        <td>${escapeHtml(project.name)}</td>
+        <td>${escapeHtml(project.stage)}</td>
+        <td>${escapeHtml(project.responsible_name)}</td>
+        <td>${escapeHtml(project.platform)}</td>
         <td>${project.plan_reels}</td>
         <td>${project.done_reels}</td>
         <td>${progress}%</td>
@@ -591,18 +568,18 @@ function renderAnalytics() {
 
   let analytics = state.analytics;
   if (!state.isAdmin()) {
-    analytics = analytics.filter(a => a.responsible_id === state.currentUser?.id);
+      analytics = analytics.filter(a => a.responsible_id === state.currentUserId);
   }
 
   analytics.forEach(a => {
     tbody.innerHTML += `
       <tr>
-        <td>${a.project_name}</td>
-        <td>${a.responsible_name}</td>
+        <td>${escapeHtml(a.project_name)}</td>
+        <td>${escapeHtml(a.responsible_name)}</td>
         <td>${a.views}</td>
         <td>${a.subs}</td>
         <td>${a.interactions}</td>
-        <td>${a.period}</td>
+        <td>${escapeHtml(a.period)}</td>
         <td>
           <button class="btn-sm" data-action="edit" data-type="analytics" data-id="${a.id}">✏️</button>
           ${state.isAdmin() ? `<button class="btn-sm btn-danger" data-action="delete" data-type="analytics" data-id="${a.id}">🗑️</button>` : ''}
@@ -614,17 +591,46 @@ function renderAnalytics() {
 
 function renderTasks() {
   const tbody = document.getElementById('tasksTable');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
-  state.tasks.forEach((task, index) => {
+  // Filter tasks: non-admin users should only see tasks explicitly assigned to them
+  let tasks = state.tasks || [];
+  if (!state.isAdmin()) {
+    tasks = tasks.filter(t => t.responsible_id === state.currentUserId);
+  }
+
+  if (tasks.length === 0) {
+    // If user has no tasks, show an instructional message
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="padding:20px; text-align:center; color:var(--gray);">
+          Вы пока не назначены ни на одну задачу или проект.<br>
+          Пожалуйста, обратитесь к администратору для назначения проекта, или ознакомьтесь с <a href="#" data-action="show-guide">Гайдом</a> и <a href="#" data-action="show-regs">Регламентом</a>.
+        </td>
+      </tr>
+    `;
+
+    // Attach handlers for links (delegated)
+    setTimeout(() => {
+      const guideLink = tbody.querySelector('[data-action="show-guide"]');
+      const regsLink = tbody.querySelector('[data-action="show-regs"]');
+      if (guideLink) guideLink.addEventListener('click', (e) => { e.preventDefault(); renderSection('guide'); });
+      if (regsLink) regsLink.addEventListener('click', (e) => { e.preventDefault(); renderSection('regulations'); });
+    }, 50);
+
+    return;
+  }
+
+  tasks.forEach((task, index) => {
     tbody.innerHTML += `
       <tr>
         <td>${index + 1}</td>
-        <td>${task.project_name}</td>
-        <td>${task.task_name}</td>
-        <td>${formatDate(task.end_date)}</td>
-        <td>${task.responsible_name}</td>
-        <td>${task.stage}</td>
+        <td>${escapeHtml(task.project_name)}</td>
+        <td>${escapeHtml(task.task_name)}</td>
+        <td>${escapeHtml(formatDate(task.end_date))}</td>
+        <td>${escapeHtml(task.responsible_name)}</td>
+        <td>${escapeHtml(task.stage)}</td>
         <td>
           <button class="btn-sm" data-action="edit" data-type="task" data-id="${task.id}">✏️</button>
           ${state.isAdmin() ? `<button class="btn-sm btn-danger" data-action="delete" data-type="task" data-id="${task.id}">🗑️</button>` : ''}
@@ -641,13 +647,18 @@ function renderEmployees() {
   tbody.innerHTML = '';
 
   state.employees.forEach(emp => {
+    const projectNames = state.projects
+      .filter(p => p.responsible_id === emp.id)
+      .map(p => p.name)
+      .join(', ') || '-';
+
     tbody.innerHTML += `
       <tr>
-        <td>${emp.name}</td>
-        <td>${emp.city}</td>
-        <td>${emp.employment}</td>
-        <td>${emp.status}</td>
-        <td>${emp.status}</td>
+        <td>${escapeHtml(emp.name)}</td>
+        <td>${escapeHtml(emp.city)}</td>
+        <td>${escapeHtml(emp.employment)}</td>
+        <td>${escapeHtml(projectNames)}</td>
+        <td>${escapeHtml(emp.status)}</td>
         <td>
           <button class="btn-sm" data-action="edit" data-type="employee" data-id="${emp.id}">✏️</button>
           <button class="btn-sm btn-danger" data-action="delete" data-type="employee" data-id="${emp.id}">🗑️</button>
@@ -658,28 +669,168 @@ function renderEmployees() {
 }
 
 function renderReports() {
-  const tbody = document.getElementById('reportsListTable');
-  tbody.innerHTML = '';
+  renderReportSummary();
+
+  const activeProjects = state.projects.filter(p => p.stage === 'В работе');
+  populateDropdown('reportProject', activeProjects);
+  populateDropdown('reportFilterEmployee', state.users || []);
+  populateDropdown('reportFilterProject', activeProjects);
 
   let reports = state.reports;
   if (!state.isAdmin()) {
-    reports = reports.filter(r => r.user_id === state.currentUser?.id);
+    reports = reports.filter(r => r.user_id === state.currentUserId);
+  }
+
+  renderReportRows(reports);
+}
+
+function renderReportSummary() {
+  const tbody = document.getElementById('reportsSummaryTable');
+  if (!tbody) return;
+
+  const activeProjects = state.projects.filter(p => p.stage === 'В работе');
+  tbody.innerHTML = '';
+
+  if (activeProjects.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center; color:var(--gray);">Нет проектов в работе</td>
+      </tr>
+    `;
+    return;
+  }
+
+  activeProjects.forEach(project => {
+    const projectAnalytics = (state.analytics || []).filter(a => a.project_id === project.id);
+    const totalViews = projectAnalytics.reduce((sum, a) => sum + (parseInt(a.views, 10) || 0), 0);
+    const totalSubs = projectAnalytics.reduce((sum, a) => sum + (parseInt(a.subs, 10) || 0), 0);
+    const totalInteractions = projectAnalytics.reduce((sum, a) => sum + (parseInt(a.interactions, 10) || 0), 0);
+    const responsible = (state.users || []).find(u => u.id === project.responsible_id)?.name || '-';
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${escapeHtml(project.name)}</td>
+        <td>${escapeHtml(responsible)}</td>
+        <td>${project.plan_reels ?? 0}</td>
+        <td>${project.done_reels ?? 0}</td>
+        <td>${totalViews}</td>
+        <td>${totalSubs}</td>
+        <td>${totalInteractions}</td>
+      </tr>
+    `;
+  });
+}
+
+function renderReportRows(reports) {
+  const tbody = document.getElementById('reportsListTable');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!reports || reports.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="padding:20px; text-align:center; color:var(--gray);">
+          Нет отчётов для отображения. Создайте новый отчёт или уберите фильтры.
+        </td>
+      </tr>
+    `;
+    return;
   }
 
   reports.forEach(report => {
     tbody.innerHTML += `
       <tr>
-        <td>${formatDate(report.date)}</td>
-        <td>${report.time}</td>
-        <td>${report.user_name}</td>
-        <td>${report.project_name}</td>
-        <td>${report.reels_created}/${report.reels_published}</td>
-        <td>${report.platforms}</td>
-        <td>${report.comment}</td>
+        <td>${escapeHtml(formatDate(report.date))}</td>
+        <td>${escapeHtml(report.time)}</td>
+        <td>${escapeHtml(report.user_name)}</td>
+        <td>${escapeHtml(report.project_name)}</td>
+        <td>${report.reels_created} / ${report.reels_published}</td>
+        <td>${escapeHtml(report.platforms)}</td>
+        <td>${escapeHtml(report.comment)}</td>
         <td>${report.screenshot_data ? '📸' : '-'}</td>
       </tr>
     `;
   });
+}
+
+async function submitReport() {
+  const projectId = parseInt(document.getElementById('reportProject').value, 10) || null;
+  if (!projectId) {
+    showToast('Выберите проект для отчёта', 'error');
+    return;
+  }
+
+  const project = state.projects.find(p => p.id === projectId);
+  const reelsCreated = parseInt(document.getElementById('reportReelsCreated').value, 10) || 0;
+  const reelsPublished = parseInt(document.getElementById('reportReelsPublished').value, 10) || 0;
+  const platforms = Array.from(document.querySelectorAll('.reportPlatform:checked')).map(input => input.value).join(', ');
+  const comment = document.getElementById('reportComment').value.trim();
+  const screenshotData = await getScreenshotAsBase64(document.getElementById('reportScreenshot'));
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+  const data = {
+    project_id: projectId,
+    project_name: project?.name || '',
+    date,
+    time,
+    reels_created: reelsCreated,
+    reels_published: reelsPublished,
+    platforms,
+    comment,
+    screenshot_data: screenshotData
+  };
+
+  const result = await api.post('/reports', data);
+  if (!result) return;
+
+  state.reports = (await api.get('/reports')) || [];
+  renderReports();
+  showToast('Отчёт отправлен', 'success');
+
+  document.getElementById('reportProject').value = '';
+  document.getElementById('reportReelsCreated').value = 0;
+  document.getElementById('reportReelsPublished').value = 0;
+  document.querySelectorAll('.reportPlatform:checked').forEach(input => input.checked = false);
+  document.getElementById('reportComment').value = '';
+  document.getElementById('reportScreenshot').value = '';
+  document.getElementById('screenshotPreview').innerHTML = '';
+}
+
+function applyReportFilters() {
+  let reports = state.reports;
+  if (!state.isAdmin()) {
+    reports = reports.filter(r => r.user_id === state.currentUserId);
+  }
+
+  const dateFrom = document.getElementById('reportFilterDateFrom').value;
+  const dateTo = document.getElementById('reportFilterDateTo').value;
+  const employeeId = parseInt(document.getElementById('reportFilterEmployee').value, 10) || null;
+  const projectId = parseInt(document.getElementById('reportFilterProject').value, 10) || null;
+
+  if (dateFrom) {
+    reports = reports.filter(r => r.date >= dateFrom);
+  }
+  if (dateTo) {
+    reports = reports.filter(r => r.date <= dateTo);
+  }
+  if (employeeId) {
+    reports = reports.filter(r => r.user_id === employeeId);
+  }
+  if (projectId) {
+    reports = reports.filter(r => r.project_id === projectId);
+  }
+
+  renderReportRows(reports);
+}
+
+function clearReportFilters() {
+  document.getElementById('reportFilterDateFrom').value = '';
+  document.getElementById('reportFilterDateTo').value = '';
+  document.getElementById('reportFilterEmployee').value = '';
+  document.getElementById('reportFilterProject').value = '';
+  renderReports();
 }
 
 function renderFinance() {
@@ -700,11 +851,11 @@ function renderAccess() {
   state.access.forEach(acc => {
     tbody.innerHTML += `
       <tr>
-        <td>${acc.project_name}</td>
-        <td><a href="${acc.tg_link}" target="_blank">TG</a></td>
-        <td>${acc.login}</td>
-        <td><input type="password" value="${acc.password}" readonly style="width:150px;"></td>
-        <td>${acc.note}</td>
+        <td>${escapeHtml(acc.project_name)}</td>
+        <td><a href="${escapeHtml(acc.tg_link)}" target="_blank" rel="noopener noreferrer">TG</a></td>
+        <td>${escapeHtml(acc.login)}</td>
+        <td><input type="password" value="${escapeHtml(acc.password)}" readonly style="width:150px;"></td>
+        <td>${escapeHtml(acc.note)}</td>
         <td>
           <button class="btn-sm" data-action="edit" data-type="access" data-id="${acc.id}">✏️</button>
           <button class="btn-sm btn-danger" data-action="delete" data-type="access" data-id="${acc.id}">🗑️</button>
@@ -739,10 +890,11 @@ function openAnalyticsModal() {
   populateDropdown('analyticsResponsible', state.users || []);
 }
 
-function openEmployeeModal() {
+function openEmployeeModal(selectedProjectIds = []) {
   state.editingId = null;
   document.getElementById('employeeForm').reset();
   openModal('employeeModal');
+  populateDropdown('employeeProjects', state.projects || [], selectedProjectIds);
 }
 
 function openAccessModal() {
@@ -755,6 +907,10 @@ function openAccessModal() {
 // ===== Projects CRUD =====
 async function saveProject(e) {
   e.preventDefault();
+  if (!state.isAdmin()) {
+    showToast('Только администратор может создавать или редактировать проекты', 'error');
+    return;
+  }
   const data = {
     name: document.getElementById('projectName').value.trim(),
     stage: document.getElementById('projectStage').value,
@@ -872,6 +1028,10 @@ async function saveEmployee(e) {
   const lastName = document.getElementById('employeeLastName').value.trim();
   const fullName = [firstName, lastName].filter(Boolean).join(' ');
 
+  const selectedProjectIds = Array.from(document.getElementById('employeeProjects').selectedOptions)
+    .map(option => parseInt(option.value, 10))
+    .filter(Boolean);
+
   const data = {
     name: fullName,
     city: document.getElementById('employeeCity').value.trim(),
@@ -892,12 +1052,38 @@ async function saveEmployee(e) {
     : await api.post('/employees', data);
   if (!result) return;
 
+  const employeeId = id || result.id;
+  try {
+    await assignEmployeeProjects(employeeId, selectedProjectIds);
+  } catch (error) {
+    return;
+  }
+
+  await loadAppData();
   closeModal('employeeModal');
   state.editingId = null;
   showToast(id ? 'Сотрудник обновлён' : 'Сотрудник добавлен', 'success');
-  state.employees = (await api.get('/employees')) || [];
-  state.users = state.employees;
   renderEmployees();
+}
+
+async function assignEmployeeProjects(employeeId, selectedProjectIds = []) {
+  const currentProjectIds = (state.projects || [])
+    .filter(p => p.responsible_id === employeeId)
+    .map(p => p.id);
+
+  const toAssign = selectedProjectIds.filter(id => !currentProjectIds.includes(id));
+  const toUnassign = currentProjectIds.filter(id => !selectedProjectIds.includes(id));
+
+  if (toUnassign.length > 0) {
+    showToast('Чтобы снять проект с сотрудника, переназначьте его другому сотруднику через форму проекта.', 'error');
+    throw new Error('Unassigning project without replacement is not allowed');
+  }
+
+  const assignPromises = toAssign.map(projectId =>
+    api.post(`/projects/${projectId}/assign`, { userId: employeeId })
+  );
+
+  await Promise.all(assignPromises);
 }
 
 function editEmployee(id) {
@@ -906,7 +1092,12 @@ function editEmployee(id) {
     showToast('Сотрудник не найден', 'error');
     return;
   }
-  openEmployeeModal();
+
+  const assignedProjectIds = state.projects
+    .filter(p => p.responsible_id === id)
+    .map(p => p.id);
+
+  openEmployeeModal(assignedProjectIds);
   state.editingId = id;
   const parts = (employee.name || '').split(' ');
   document.getElementById('employeeFirstName').value = parts[0] || '';
@@ -1037,26 +1228,198 @@ async function deleteAccess(id) {
 }
 
 function updateFinanceParams() {
-  const baseSalary = parseFloat(document.getElementById('baseSalary')?.value || 4000);
-  const baseReels = parseFloat(document.getElementById('baseReels')?.value || 80);
-  const otherExpenses = parseFloat(document.getElementById('otherExpenses')?.value || 0);
-  const pricePerReel = Math.round(baseSalary / baseReels);
+  const financeParams = state.financeParams = state.financeParams || {};
+  financeParams.baseSalary = parseFloat(document.getElementById('baseSalary')?.value || 4000);
+  financeParams.baseReels = parseFloat(document.getElementById('baseReels')?.value || 80);
+  financeParams.analyticsBonusThreshold = parseInt(document.getElementById('analyticsBonusThreshold')?.value || 500000, 10);
+  financeParams.analyticsBonusAmount = parseInt(document.getElementById('analyticsBonusAmount')?.value || 1000, 10);
+  financeParams.otherExpenses = parseFloat(document.getElementById('otherExpenses')?.value || 0);
+  const pricePerReel = Math.round(financeParams.baseSalary / financeParams.baseReels);
 
   const priceEl = document.getElementById('pricePerReel');
   if (priceEl) {
     priceEl.textContent = pricePerReel + '₽';
   }
+
+  const bonusRuleEl = document.getElementById('bonusRule');
+  if (bonusRuleEl) {
+    bonusRuleEl.textContent = `+${financeParams.analyticsBonusAmount}₽ за ${financeParams.analyticsBonusThreshold.toLocaleString('ru-RU')} просмотров`;
+  }
+
+  renderFinanceReport();
+  renderFinanceAnalytics();
+}
+
+function getEmployeeDoneReels(employeeId) {
+  return state.projects.reduce((sum, project) => {
+    return sum + ((project.responsible_id === employeeId) ? (parseInt(project.done_reels, 10) || 0) : 0);
+  }, 0);
+}
+
+function getEmployeeViews(employeeId) {
+  return state.analytics.reduce((sum, item) => {
+    return sum + ((item.responsible_id === employeeId) ? (parseInt(item.views, 10) || 0) : 0);
+  }, 0);
+}
+
+function getEmployeeSalary(employee) {
+  const financeParams = state.financeParams = state.financeParams || {};
+  const doneReels = getEmployeeDoneReels(employee.id);
+  const views = getEmployeeViews(employee.id);
+  const baseSalary = Math.round(Math.min(doneReels, financeParams.baseReels) / financeParams.baseReels * financeParams.baseSalary);
+  const bonus = views >= financeParams.analyticsBonusThreshold ? financeParams.analyticsBonusAmount : 0;
+  const total = baseSalary + bonus;
+
+  return {
+    name: employee.name || 'Неизвестный',
+    doneReels,
+    views,
+    baseSalary,
+    bonus,
+    total
+  };
+}
+
+function getTotalPayroll() {
+  return state.employees.reduce((sum, employee) => sum + getEmployeeSalary(employee).total, 0);
+}
+
+function getTotalBonus() {
+  return state.employees.reduce((sum, employee) => sum + getEmployeeSalary(employee).bonus, 0);
+}
+
+function getTotalViews() {
+  return state.analytics.reduce((sum, item) => sum + (parseInt(item.views, 10) || 0), 0);
+}
+
+function renderFinanceReport() {
+  const financeParams = state.financeParams = state.financeParams || {};
+  const tbody = document.getElementById('financePayrollTable');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (!state.employees || state.employees.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray);">Нет сотрудников для расчёта выплат.</td></tr>';
+    return;
+  }
+
+  let totalBase = 0;
+  let totalBonus = 0;
+
+  state.employees.forEach(employee => {
+    const salary = getEmployeeSalary(employee);
+    totalBase += salary.baseSalary;
+    totalBonus += salary.bonus;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${escapeHtml(salary.name)}</td>
+        <td>${salary.doneReels}</td>
+        <td>${salary.views.toLocaleString('ru-RU')}</td>
+        <td>${salary.baseSalary.toLocaleString('ru-RU')}₽</td>
+        <td>${salary.bonus.toLocaleString('ru-RU')}₽</td>
+        <td>${salary.total.toLocaleString('ru-RU')}₽</td>
+        <td>${salary.doneReels >= financeParams.baseReels ? 'Норма выполнена' : 'Норма не выполнена'}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('totalBaseSalary').textContent = totalBase.toLocaleString('ru-RU') + '₽';
+  document.getElementById('totalBonusSalary').textContent = totalBonus.toLocaleString('ru-RU') + '₽';
+  document.getElementById('totalExpenses').textContent = financeParams.otherExpenses.toLocaleString('ru-RU') + '₽';
+  document.getElementById('totalPayout').textContent = (totalBase + totalBonus + financeParams.otherExpenses).toLocaleString('ru-RU') + '₽';
+}
+
+function renderFinanceAnalytics() {
+  const financeParams = state.financeParams = state.financeParams || {};
+  const totalViews = getTotalViews();
+  const totalPayroll = getTotalPayroll();
+  const totalBonus = getTotalBonus();
+  const totalPayout = totalPayroll + financeParams.otherExpenses;
+
+  const totalViewsEl = document.getElementById('totalViewsAll');
+  const totalEmployeesEl = document.getElementById('totalEmployeesAll');
+  const totalBonusRuleEl = document.getElementById('totalBonusRule');
+  const totalPayoutAllEl = document.getElementById('totalPayoutAll');
+
+  if (totalViewsEl) totalViewsEl.textContent = totalViews.toLocaleString('ru-RU');
+  if (totalEmployeesEl) totalEmployeesEl.textContent = state.employees.length;
+  if (totalBonusRuleEl) totalBonusRuleEl.textContent = `+${financeParams.analyticsBonusAmount}₽ за ${financeParams.analyticsBonusThreshold.toLocaleString('ru-RU')} просмотров`;
+  if (totalPayoutAllEl) totalPayoutAllEl.textContent = totalPayout.toLocaleString('ru-RU') + '₽';
+
+  renderFinanceCharts(totalPayroll, totalBonus, totalPayout);
+}
+
+function renderFinanceCharts(payroll, bonus, payout) {
+  const financeParams = state.financeParams = state.financeParams || {};
+  const chartPayrollCtx = document.getElementById('chartPayroll');
+  const chartViewsCtx = document.getElementById('chartViews');
+
+  if (window.financeChartPayroll) window.financeChartPayroll.destroy();
+  if (window.financeChartViews) window.financeChartViews.destroy();
+
+  if (chartPayrollCtx) {
+    window.financeChartPayroll = new Chart(chartPayrollCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Базовая зарплата', 'Премии', 'Расходы'],
+        datasets: [{
+          data: [payroll, bonus, financeParams.otherExpenses],
+          backgroundColor: ['var(--primary)', 'var(--success)', 'var(--danger)'],
+          borderColor: 'var(--white)',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  const topEmployees = state.employees
+    .map(employee => ({
+      name: employee.name || 'Неизвестный',
+      views: getEmployeeViews(employee.id)
+    }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 8);
+
+  if (chartViewsCtx) {
+    window.financeChartViews = new Chart(chartViewsCtx, {
+      type: 'bar',
+      data: {
+        labels: topEmployees.map(item => item.name),
+        datasets: [{
+          label: 'Просмотры',
+          data: topEmployees.map(item => item.views),
+          backgroundColor: '#2563EB'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+}
+
+function exportTableToXLSX(tableId, filename) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  if (!window.XLSX) {
+    alert('Библиотека XLSX не загружена.');
+    return;
+  }
+
+  const workbook = XLSX.utils.table_to_book(table, { sheet: 'Выплаты' });
+  XLSX.writeFile(workbook, filename || 'finance-payroll.xlsx');
 }
 
 // Initialize app when DOM is loaded
-console.log('📄 App.js loaded, document.readyState:', document.readyState);
-
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('📄 DOMContentLoaded event fired');
-    initializeApp();
-  });
+  document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-  console.log('📄 DOM already ready, initializing...');
   initializeApp();
 }

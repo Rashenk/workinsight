@@ -1,6 +1,7 @@
 // Global application state
 const state = {
   currentUser: null,
+  currentUserId: null,
   userRole: null,
   userEmail: null,
 
@@ -23,6 +24,7 @@ const state = {
 
   setUser(user, token) {
     this.currentUser = user.name;
+    this.currentUserId = user.id || null;
     this.userEmail = user.email;
     this.userRole = user.role;
     api.setToken(token);
@@ -30,6 +32,7 @@ const state = {
 
   logout() {
     this.currentUser = null;
+    this.currentUserId = null;
     this.userRole = null;
     this.userEmail = null;
     api.setToken(null);

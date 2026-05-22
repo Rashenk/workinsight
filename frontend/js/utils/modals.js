@@ -18,19 +18,22 @@ function populateDropdown(id, options, selectedValue = '') {
   const select = document.getElementById(id);
   if (!select) return;
 
-  const currentValue = select.value;
-  select.innerHTML = '<option value="">Выберите опцию</option>';
+  select.innerHTML = select.multiple ? '' : '<option value="">Выберите опцию</option>';
+  const selectedSet = Array.isArray(selectedValue) ? selectedValue.map(String) : null;
 
   if (Array.isArray(options)) {
     options.forEach(opt => {
       const option = document.createElement('option');
       option.value = opt.id || opt;
       option.textContent = opt.name || opt;
+      if (selectedSet && selectedSet.includes(String(option.value))) {
+        option.selected = true;
+      }
       select.appendChild(option);
     });
   }
 
-  if (selectedValue) {
+  if (!select.multiple && selectedValue) {
     select.value = selectedValue;
   }
 }

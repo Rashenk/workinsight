@@ -71,7 +71,7 @@ async function initializeDatabase() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         stage TEXT,
-        responsible_id INTEGER,
+        responsible_id INTEGER NOT NULL,
         responsible_name TEXT,
         platform TEXT,
         priority INTEGER DEFAULT 5,
@@ -255,7 +255,7 @@ async function seedDatabase() {
       { name: 'Консалтинг ресторанов', responsible: 'Дима Кичигин' },
       { name: 'Роллы, пицца, суши', responsible: 'Дима Кичигин' },
       { name: 'Квизы', responsible: 'Дима Кичигин' },
-      { name: 'ИИ-тренер', responsible: '-------' },
+      { name: 'Тренер', responsible: '-------' },
       { name: 'Покер Питер', responsible: 'Рубцов Александр' },
       { name: 'Клубника в шоколаде', responsible: 'Александр Костя' },
       { name: 'Аквапарк Москва', responsible: '-------' },
@@ -270,10 +270,11 @@ async function seedDatabase() {
 
     for (const proj of projects) {
       const responsibleId = userMap[proj.responsible] || null;
+      const doneReels = Math.floor(Math.random() * 81);
       await runAsync(`
-        INSERT INTO projects (name, stage, responsible_id, responsible_name, platform, priority)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [proj.name, 'В работе', responsibleId, proj.responsible, 'Instagram', 5]);
+        INSERT INTO projects (name, stage, responsible_id, responsible_name, platform, priority, plan_reels, done_reels)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [proj.name, 'В работе', responsibleId, proj.responsible, 'Instagram', 5, 80, doneReels]);
     }
 
     // Finish Finance params

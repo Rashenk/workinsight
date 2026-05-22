@@ -50,12 +50,17 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Project name required' });
   }
 
+  if (!responsible_id) {
+    return res.status(400).json({ error: 'Project must be assigned to a responsible employee' });
+  }
+
   try {
     let responsible_name = '';
-    if (responsible_id) {
-      const user = await getAsync('SELECT name FROM users WHERE id = ?', [responsible_id]);
-      responsible_name = user?.name || '';
+    const user = await getAsync('SELECT name FROM users WHERE id = ?', [responsible_id]);
+    if (!user) {
+      return res.status(400).json({ error: 'Responsible employee not found' });
     }
+    responsible_name = user.name;
 
     await runAsync(`
       INSERT INTO projects (name, stage, responsible_id, responsible_name, platform, priority, plan_reels, done_reels, start_date, comment)
@@ -81,9 +86,17 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     }
 
     let responsible_name = project.responsible_name;
-    if (responsible_id !== undefined && responsible_id !== project.responsible_id) {
-      const user = await getAsync('SELECT name FROM users WHERE id = ?', [responsible_id]);
-      responsible_name = user?.name || '';
+    if (responsible_id !== undefined) {
+      if (!responsible_id) {
+        return res.status(400).json({ error: 'Project must be assigned to a responsible employee' });
+      }
+      if (responsible_id !== project.responsible_id) {
+        const user = await getAsync('SELECT name FROM users WHERE id = ?', [responsible_id]);
+        if (!user) {
+          return res.status(400).json({ error: 'Responsible employee not found' });
+        }
+        responsible_name = user.name;
+      }
     }
 
     await runAsync(`
