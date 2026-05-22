@@ -93,6 +93,17 @@ function updateAdminSection() {
     const el = document.getElementById(id);
     if (el) el.style.display = state.isAdmin() ? '' : 'none';
   });
+
+  // Employees data is admin-only — hide its nav button for non-admins
+  const employeesNav = document.querySelector('.nav-item[data-section="employees"]');
+  if (employeesNav) employeesNav.style.display = state.isAdmin() ? '' : 'none';
+
+  // Finance is admin-only — hide the whole nav group (label + button)
+  const financeNav = document.querySelector('.nav-item[data-section="finance"]');
+  if (financeNav) {
+    const section = financeNav.closest('.nav-section');
+    if (section) section.style.display = state.isAdmin() ? '' : 'none';
+  }
 }
 
 function setupEventListeners() {
@@ -276,6 +287,10 @@ function handleDataActionClick(e) {
       e.preventDefault();
       exportCSV(target.dataset.table, target.dataset.table + '.csv');
       break;
+    case 'export-xlsx':
+      e.preventDefault();
+      exportTableToXLSX(target.dataset.table, target.dataset.filename);
+      break;
     case 'copy-prompt':
       e.preventDefault();
       copyPrompt(target.dataset.prompt);
@@ -315,7 +330,7 @@ function handleDataActionChange(e) {
       previewScreenshot(target);
       break;
     case 'update-finance-params':
-      updateFinanceParams();
+      saveFinanceParams();
       break;
   }
 }
@@ -554,8 +569,9 @@ function renderProjects() {
         <td>${project.done_reels}</td>
         <td>${progress}%</td>
         <td>
+          ${state.isAdmin() ? `
           <button class="btn-sm" data-action="edit" data-type="project" data-id="${project.id}">✏️</button>
-          ${state.isAdmin() ? `<button class="btn-sm btn-danger" data-action="delete" data-type="project" data-id="${project.id}">🗑️</button>` : ''}
+          <button class="btn-sm btn-danger" data-action="delete" data-type="project" data-id="${project.id}">🗑️</button>` : '<span style="color: var(--gray);">—</span>'}
         </td>
       </tr>
     `;
@@ -834,12 +850,33 @@ function clearReportFilters() {
 }
 
 function renderFinance() {
-  // Load finance params
-  const baseSalary = document.getElementById('baseSalary');
-  if (baseSalary) {
-    baseSalary.value = state.financeParams.base_salary || 4000;
-  }
+  // Restore inputs from saved params (API returns snake_case; working copy is camelCase)
+  const p = state.financeParams || {};
+  const setVal = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  };
+  setVal('baseSalary', p.base_salary ?? p.baseSalary ?? 4000);
+  setVal('baseReels', p.base_reels ?? p.baseReels ?? 80);
+  setVal('analyticsBonusThreshold', p.bonus_threshold ?? p.analyticsBonusThreshold ?? 500000);
+  setVal('analyticsBonusAmount', p.bonus_amount ?? p.analyticsBonusAmount ?? 1000);
+  setVal('otherExpenses', p.other_expenses ?? p.otherExpenses ?? 0);
   updateFinanceParams();
+}
+
+async function saveFinanceParams() {
+  updateFinanceParams();
+  const p = state.financeParams;
+  const result = await api.put('/finance/params', {
+    base_salary: p.baseSalary,
+    base_reels: p.baseReels,
+    other_expenses: p.otherExpenses,
+    bonus_threshold: p.analyticsBonusThreshold,
+    bonus_amount: p.analyticsBonusAmount
+  });
+  if (result) {
+    showToast('Параметры расчёта сохранены', 'success');
+  }
 }
 
 function renderAccess() {
@@ -1366,8 +1403,8 @@ function renderFinanceCharts(payroll, bonus, payout) {
         labels: ['Базовая зарплата', 'Премии', 'Расходы'],
         datasets: [{
           data: [payroll, bonus, financeParams.otherExpenses],
-          backgroundColor: ['var(--primary)', 'var(--success)', 'var(--danger)'],
-          borderColor: 'var(--white)',
+          backgroundColor: ['#2563EB', '#10B981', '#EF4444'],
+          borderColor: '#FFFFFF',
           borderWidth: 2
         }]
       },

@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="description" content="WorkInsight — внутренняя система управления проектами и персоналом SMM-агентства.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>WorkInsight - SMM Management System</title>
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
     <!-- Chart.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- SheetJS XLSX -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Styles -->
     <link rel="stylesheet" href="css/styles.css">
@@ -1298,7 +1299,7 @@ FOMO — страх упустить что-то важное
                     <div class="table-section">
                         <div class="table-header">
                             <div class="table-title">Выплаты сотрудникам</div>
-                            <button class="btn-secondary" onclick="exportTableToXLSX('financePayrollTable', 'finance-payroll.xlsx')">📥 Экспорт XLSX</button>
+                            <button class="btn-secondary" data-action="export-xlsx" data-table="financePayrollTable" data-filename="finance-payroll.xlsx">📥 Экспорт XLSX</button>
                         </div>
                         <div style="overflow-x: auto;">
                             <table>
@@ -1678,13 +1679,13 @@ FOMO — страх упустить что-то важное
 </div>
 
 <!-- Scripts -->
-<script src="js/core/api.js"></script>
-<script src="js/core/state.js"></script>
-<script src="js/core/auth.js"></script>
-<script src="js/utils/helpers.js"></script>
-<script src="js/utils/modals.js"></script>
-<script src="js/pages/daily-reels.js"></script>
-<script src="js/app.js"></script>
+<script defer src="js/core/api.js"></script>
+<script defer src="js/core/state.js"></script>
+<script defer src="js/core/auth.js"></script>
+<script defer src="js/utils/helpers.js"></script>
+<script defer src="js/utils/modals.js"></script>
+<script defer src="js/pages/daily-reels.js"></script>
+<script defer src="js/app.js"></script>
 
 </body>
 </html>

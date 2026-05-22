@@ -137,7 +137,9 @@ async function initializeDatabase() {
         id INTEGER PRIMARY KEY DEFAULT 1,
         base_salary INTEGER DEFAULT 4000,
         base_reels INTEGER DEFAULT 80,
-        other_expenses INTEGER DEFAULT 0
+        other_expenses INTEGER DEFAULT 0,
+        bonus_threshold INTEGER DEFAULT 500000,
+        bonus_amount INTEGER DEFAULT 1000
       );
 
       CREATE TABLE IF NOT EXISTS daily_reels (
@@ -168,6 +170,15 @@ async function initializeDatabase() {
       if (stmt.trim()) {
         await runAsync(stmt);
       }
+    }
+
+    // Migrate older databases: add finance bonus columns if absent
+    const financeColumns = await allAsync('PRAGMA table_info(finance_params)');
+    if (!financeColumns.some(c => c.name === 'bonus_threshold')) {
+      await runAsync('ALTER TABLE finance_params ADD COLUMN bonus_threshold INTEGER DEFAULT 500000');
+    }
+    if (!financeColumns.some(c => c.name === 'bonus_amount')) {
+      await runAsync('ALTER TABLE finance_params ADD COLUMN bonus_amount INTEGER DEFAULT 1000');
     }
 
     // Check if admin exists
@@ -244,9 +255,9 @@ async function seedDatabase() {
       { name: 'Туры в Сахалин', responsible: 'Артем' },
       { name: 'Психолог новый', responsible: 'Елена' },
       { name: 'Репетитор Английский', responsible: 'Артем' },
-      { name: 'Личный бренд девочка танцы', responsible: 'Рубцов Александр' },
+      { name: 'Личный бренд девочка танцы', responsible: 'Александр Рубцов' },
       { name: 'Идилия капельницы', responsible: 'Дима Кичигин' },
-      { name: 'Риелтор Грозный Альбина', responsible: 'Саша Москва' },
+      { name: 'Риелтор Грозный Альбина', responsible: 'Александр' },
       { name: 'Диски', responsible: 'Дима Кичигин' },
       { name: 'Товары оптом из Китая', responsible: 'Дима Кичигин' },
       { name: 'Покер Москва', responsible: 'Валера' },
@@ -256,20 +267,23 @@ async function seedDatabase() {
       { name: 'Роллы, пицца, суши', responsible: 'Дима Кичигин' },
       { name: 'Квизы', responsible: 'Дима Кичигин' },
       { name: 'Тренер', responsible: '-------' },
-      { name: 'Покер Питер', responsible: 'Рубцов Александр' },
+      { name: 'Покер Питер', responsible: 'Александр Рубцов' },
       { name: 'Клубника в шоколаде', responsible: 'Александр Костя' },
       { name: 'Аквапарк Москва', responsible: '-------' },
       { name: 'Баер из Китая', responsible: 'Константин' },
       { name: 'Психолог', responsible: 'Елена' },
       { name: 'Цветочный Минск', responsible: 'Паша Рубцов' },
       { name: 'Студия рисования', responsible: 'Паша Рубцов' },
-      { name: 'Цветы', responsible: 'Саша Москва' },
-      { name: 'Пойзон', responsible: 'Саша Москва' },
+      { name: 'Цветы', responsible: 'Александр' },
+      { name: 'Пойзон', responsible: 'Александр' },
       { name: 'Риелтор Калининград', responsible: 'Дима Кичигин' }
     ];
 
     for (const proj of projects) {
       const responsibleId = userMap[proj.responsible] || null;
+      // Skip projects whose responsible employee could not be resolved
+      // (responsible_id is NOT NULL — inserting null would abort seeding)
+      if (!responsibleId) continue;
       const doneReels = Math.floor(Math.random() * 81);
       await runAsync(`
         INSERT INTO projects (name, stage, responsible_id, responsible_name, platform, priority, plan_reels, done_reels)
@@ -279,8 +293,8 @@ async function seedDatabase() {
 
     // Finish Finance params
     await runAsync(`
-      INSERT OR REPLACE INTO finance_params (id, base_salary, base_reels, other_expenses)
-      VALUES (1, 4000, 80, 0)
+      INSERT OR REPLACE INTO finance_params (id, base_salary, base_reels, other_expenses, bonus_threshold, bonus_amount)
+      VALUES (1, 4000, 80, 0, 500000, 1000)
     `);
 
     console.log('✅ Database seeded with initial data');

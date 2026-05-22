@@ -4,6 +4,9 @@ function openModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
     modal.classList.add('active');
+    // Move focus into the modal for keyboard users
+    const focusable = modal.querySelector('input, select, textarea, button');
+    if (focusable) focusable.focus();
   }
 }
 
@@ -57,5 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('active');
       }
     });
+  });
+
+  // Close any open modal on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal.active').forEach(modal => {
+        modal.classList.remove('active');
+      });
+    }
   });
 });
