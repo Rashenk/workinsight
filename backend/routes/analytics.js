@@ -14,7 +14,8 @@ router.get('/', verifyToken, async (req, res) => {
     }
     res.json(analytics);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -34,7 +35,8 @@ router.post('/', verifyToken, async (req, res) => {
     const analytics = await getAsync('SELECT * FROM analytics ORDER BY id DESC LIMIT 1');
     res.status(201).json(analytics);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -71,7 +73,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     const updated = await getAsync('SELECT * FROM analytics WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -90,7 +93,8 @@ router.delete('/:id', verifyToken, async (req, res) => {
     await runAsync('DELETE FROM analytics WHERE id = ?', [req.params.id]);
     res.json({ message: 'Analytics record deleted' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

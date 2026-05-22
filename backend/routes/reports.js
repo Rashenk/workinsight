@@ -14,7 +14,8 @@ router.get('/', verifyToken, async (req, res) => {
     }
     res.json(reports);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -30,7 +31,8 @@ router.post('/', verifyToken, async (req, res) => {
     const report = await getAsync('SELECT * FROM reports ORDER BY id DESC LIMIT 1');
     res.status(201).json(report);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -60,7 +62,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     const updated = await getAsync('SELECT * FROM reports WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -79,7 +82,8 @@ router.delete('/:id', verifyToken, async (req, res) => {
     await runAsync('DELETE FROM reports WHERE id = ?', [req.params.id]);
     res.json({ message: 'Report deleted' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -13,7 +13,8 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
     }));
     res.json(decrypted);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -34,7 +35,8 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     const record = await getAsync('SELECT id, project_id, project_name, tg_link, login, note FROM access ORDER BY id DESC LIMIT 1');
     res.status(201).json(record);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -60,7 +62,8 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     const updated = await getAsync('SELECT id, project_id, project_name, tg_link, login, note FROM access WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -75,7 +78,8 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     await runAsync('DELETE FROM access WHERE id = ?', [req.params.id]);
     res.json({ message: 'Access record deleted' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

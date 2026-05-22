@@ -36,7 +36,8 @@ router.get('/', verifyToken, async (req, res) => {
     const reels = await allAsync(query, params);
     res.json(reels);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -71,7 +72,8 @@ router.get('/summary/:userId', verifyToken, async (req, res) => {
       remaining: Math.max(0, 80 - totalReels)
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -104,7 +106,8 @@ router.get('/admin/dashboard', verifyToken, requireAdmin, async (req, res) => {
 
     res.json(enriched);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -158,7 +161,8 @@ router.post('/add/:projectId/:date', verifyToken, async (req, res) => {
 
     res.json(record);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -177,7 +181,8 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     const updated = await getAsync('SELECT * FROM daily_reels WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -187,7 +192,8 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     await runAsync('DELETE FROM daily_reels WHERE id = ?', [req.params.id]);
     res.json({ message: 'Deleted' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

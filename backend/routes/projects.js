@@ -19,7 +19,8 @@ router.get('/', verifyToken, async (req, res) => {
     }
     res.json(projects);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -38,7 +39,8 @@ router.get('/:id', verifyToken, async (req, res) => {
 
     res.json(project);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -70,7 +72,8 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     const project = await getAsync('SELECT * FROM projects WHERE name = ? ORDER BY id DESC LIMIT 1', [name]);
     res.status(201).json(project);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -111,7 +114,8 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     const updated = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -127,7 +131,8 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     await runAsync('DELETE FROM projects WHERE id = ?', [req.params.id]);
     res.json({ message: 'Project deleted' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -159,7 +164,8 @@ router.post('/:id/assign', verifyToken, requireAdmin, async (req, res) => {
     const updated = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

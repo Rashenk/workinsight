@@ -19,6 +19,8 @@ function formatDate(dateString) {
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = 'toast toast-' + type;
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   toast.textContent = message;
 
   const bgColor = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6';

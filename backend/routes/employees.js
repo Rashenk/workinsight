@@ -10,7 +10,8 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
     const employees = await allAsync('SELECT id, email, name, phone, city, employment, status, role FROM users WHERE role = ? ORDER BY name', ['employee']);
     res.json(employees);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -31,7 +32,8 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     const employee = await getAsync('SELECT id, email, name, phone, city, employment, status FROM users WHERE name = ? AND role = ?', [name, 'employee']);
     res.status(201).json(employee);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -54,7 +56,8 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     const updated = await getAsync('SELECT id, email, name, phone, city, employment, status FROM users WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -69,7 +72,8 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     await runAsync('DELETE FROM users WHERE id = ?', [req.params.id]);
     res.json({ message: 'Employee deleted' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

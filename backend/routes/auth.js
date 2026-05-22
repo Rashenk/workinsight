@@ -57,7 +57,8 @@ router.post('/register', authLimiter, async (req, res) => {
 
     res.json({ token, user });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -87,7 +88,8 @@ router.post('/login', authLimiter, async (req, res) => {
 
     res.json({ token, user: userObj });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -101,7 +103,8 @@ router.get('/me', verifyToken, async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

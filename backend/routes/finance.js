@@ -9,7 +9,8 @@ router.get('/params', verifyToken, requireAdmin, async (req, res) => {
     const params = await getAsync('SELECT * FROM finance_params WHERE id = 1');
     res.json(params || { id: 1, base_salary: 4000, base_reels: 80, other_expenses: 0 });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -25,7 +26,8 @@ router.put('/params', verifyToken, requireAdmin, async (req, res) => {
     const params = await getAsync('SELECT * FROM finance_params WHERE id = 1');
     res.json(params);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
