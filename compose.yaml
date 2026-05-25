@@ -1,0 +1,6 @@
+services:
+  workinight:
+    build:
+      context: ./
+    port:
+      - "3000:3000"
