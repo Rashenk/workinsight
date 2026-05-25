@@ -2,5 +2,5 @@ services:
   workinight:
     build:
       context: ./
-    port:
+    ports:
       - "3000:3000"
