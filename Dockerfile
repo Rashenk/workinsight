@@ -11,5 +11,6 @@ ENV NODE_ENV $NODE_ENV
 COPY backend/package.json backend/package-lock.json* ./
 RUN npm ci && npm cache clean --force
 COPY ./ ./
+WORKDIR /app/backend
 EXPOSE 3000
-CMD ["node", "./backend/server.js"]
+CMD ["node", "./server.js"]
