@@ -548,12 +548,61 @@ function renderDashboardCharts() {
 function renderProjects() {
   const tbody = document.getElementById('projectsTable');
   if (!tbody) return;
-  tbody.innerHTML = '';
 
-  let projects = state.projects;
+  populateProjectFilterResponsible();
+  applyProjectFilters();
+}
+
+function populateProjectFilterResponsible() {
+  const select = document.getElementById('projectFilterResponsible');
+  if (!select) return;
+
+  const currentValue = select.value || '';
+  select.innerHTML = '<option value="">По ответственному: Все</option>';
+
+  (state.users || []).forEach(user => {
+    const option = document.createElement('option');
+    option.value = user.id;
+    option.textContent = user.name || user.email || ('Пользователь ' + user.id);
+    select.appendChild(option);
+  });
+
+  if (currentValue) {
+    select.value = currentValue;
+  }
+}
+
+function applyProjectFilters() {
+  const tbody = document.getElementById('projectsTable');
+  if (!tbody) return;
+
+  let projects = state.projects || [];
 
   if (!state.isAdmin()) {
-      projects = projects.filter(p => p.responsible_id === state.currentUserId);
+    projects = projects.filter(p => p.responsible_id === state.currentUserId);
+  }
+
+  const stage = document.getElementById('projectFilterStage')?.value || '';
+  const responsibleId = parseInt(document.getElementById('projectFilterResponsible')?.value, 10) || null;
+
+  if (stage) {
+    projects = projects.filter(p => p.stage === stage);
+  }
+  if (responsibleId) {
+    projects = projects.filter(p => p.responsible_id === responsibleId);
+  }
+
+  tbody.innerHTML = '';
+
+  if (projects.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center; color: var(--gray); padding: 20px;">
+          Нет проектов для отображения. Сбросьте фильтры или создайте новый проект.
+        </td>
+      </tr>
+    `;
+    return;
   }
 
   projects.forEach((project, index) => {
@@ -606,35 +655,49 @@ function renderAnalytics() {
 }
 
 function renderTasks() {
+  populateTaskFilterState();
+  applyTaskFilters();
+}
+
+function populateTaskFilterState() {
+  const stageSelect = document.getElementById('taskFilterStage');
+  if (!stageSelect) return;
+
+  if (!stageSelect.querySelector('option[value=""]').length) {
+    stageSelect.innerHTML = `
+      <option value="">По этапу: Все</option>
+      <option value="В работе">В работе</option>
+      <option value="Проблемный">Проблемный</option>
+      <option value="На паузе">На паузе</option>
+      <option value="Готово">Готово</option>
+    `;
+  }
+}
+
+function applyTaskFilters() {
   const tbody = document.getElementById('tasksTable');
   if (!tbody) return;
-  tbody.innerHTML = '';
 
-  // Filter tasks: non-admin users should only see tasks explicitly assigned to them
   let tasks = state.tasks || [];
   if (!state.isAdmin()) {
     tasks = tasks.filter(t => t.responsible_id === state.currentUserId);
   }
 
+  const stage = document.getElementById('taskFilterStage')?.value || '';
+  if (stage) {
+    tasks = tasks.filter(t => t.stage === stage);
+  }
+
+  tbody.innerHTML = '';
+
   if (tasks.length === 0) {
-    // If user has no tasks, show an instructional message
     tbody.innerHTML = `
       <tr>
         <td colspan="7" style="padding:20px; text-align:center; color:var(--gray);">
-          Вы пока не назначены ни на одну задачу или проект.<br>
-          Пожалуйста, обратитесь к администратору для назначения проекта, или ознакомьтесь с <a href="#" data-action="show-guide">Гайдом</a> и <a href="#" data-action="show-regs">Регламентом</a>.
+          Нет задач для отображения. Уберите фильтры или создайте новую задачу.
         </td>
       </tr>
     `;
-
-    // Attach handlers for links (delegated)
-    setTimeout(() => {
-      const guideLink = tbody.querySelector('[data-action="show-guide"]');
-      const regsLink = tbody.querySelector('[data-action="show-regs"]');
-      if (guideLink) guideLink.addEventListener('click', (e) => { e.preventDefault(); renderSection('guide'); });
-      if (regsLink) regsLink.addEventListener('click', (e) => { e.preventDefault(); renderSection('regulations'); });
-    }, 50);
-
     return;
   }
 
