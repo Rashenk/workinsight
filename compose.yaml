@@ -4,3 +4,7 @@ services:
       context: ./
     ports:
       - "3000:3000"
+    env_file:
+      - backend/.env
+    volumes:
+      - ./db:/app/db

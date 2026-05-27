@@ -20,7 +20,7 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 router.post('/', verifyToken, async (req, res) => {
-  const { project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, period } = req.body;
+  const { project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, sales, period } = req.body;
 
   try {
     // Ensure employee can only create analytics for themselves, admin can create for anyone
@@ -28,9 +28,9 @@ router.post('/', verifyToken, async (req, res) => {
     const finalResponsibleName = req.user.role === 'admin' && responsible_name ? responsible_name : req.user.name;
 
     await runAsync(`
-      INSERT INTO analytics (project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, period)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [project_id || null, project_name || '', finalResponsibleId, finalResponsibleName, start_date || '', views || 0, subs || 0, total_subs || 0, interactions || 0, period || '']);
+      INSERT INTO analytics (project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, sales, period)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [project_id || null, project_name || '', finalResponsibleId, finalResponsibleName, start_date || '', views || 0, subs || 0, total_subs || 0, interactions || 0, sales || 0, period || '']);
 
     const analytics = await getAsync('SELECT * FROM analytics ORDER BY id DESC LIMIT 1');
     res.status(201).json(analytics);
@@ -41,7 +41,7 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 router.put('/:id', verifyToken, async (req, res) => {
-  const { project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, period } = req.body;
+  const { project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, sales, period } = req.body;
 
   try {
     const analytics = await getAsync('SELECT * FROM analytics WHERE id = ?', [req.params.id]);
@@ -62,12 +62,13 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     await runAsync(`
       UPDATE analytics
-      SET project_id = ?, project_name = ?, responsible_id = ?, responsible_name = ?, start_date = ?, views = ?, subs = ?, total_subs = ?, interactions = ?, period = ?
+      SET project_id = ?, project_name = ?, responsible_id = ?, responsible_name = ?, start_date = ?, views = ?, subs = ?, total_subs = ?, interactions = ?, sales = ?, period = ?
       WHERE id = ?
     `, [project_id !== undefined ? project_id : analytics.project_id, project_name || analytics.project_name,
       finalResponsibleId, finalResponsibleName,
       start_date || analytics.start_date, views !== undefined ? views : analytics.views, subs !== undefined ? subs : analytics.subs,
       total_subs !== undefined ? total_subs : analytics.total_subs, interactions !== undefined ? interactions : analytics.interactions,
+      sales !== undefined ? sales : analytics.sales,
       period || analytics.period, req.params.id]);
 
     const updated = await getAsync('SELECT * FROM analytics WHERE id = ?', [req.params.id]);

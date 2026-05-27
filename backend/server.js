@@ -42,6 +42,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/access', require('./routes/access'));
 app.use('/api/daily-reels', require('./routes/daily-reels'));
+app.use('/api/expenses', require('./routes/expenses'));
 
 // 404 for unknown API endpoints (must come after all API routers)
 app.use('/api', (req, res) => {

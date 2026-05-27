@@ -4,6 +4,19 @@ const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+const MONTHS_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+function currentPeriod() {
+  const d = new Date();
+  return `${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// SQLite's LOWER() doesn't handle Cyrillic — do case-insensitive comparison in JS.
+async function findProjectByName(name, excludeId = null) {
+  const target = name.trim().toLocaleLowerCase('ru');
+  const all = await allAsync('SELECT id, name FROM projects');
+  return all.find(p => p.name.trim().toLocaleLowerCase('ru') === target && p.id !== excludeId) || null;
+}
+
 // GET all projects - employees see only their projects
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -57,6 +70,19 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
   }
 
   try {
+    const trimmedName = name.trim();
+    const duplicate = await findProjectByName(trimmedName);
+    if (duplicate) {
+      return res.status(400).json({ error: 'Проект с таким названием уже существует' });
+    }
+
+    // "Готово" allowed only at 100% of plan — new projects start at done=0
+    if (stage === 'Готово' && (done_reels || 0) < (plan_reels || 0)) {
+      return res.status(400).json({
+        error: 'Этап «Готово» можно поставить только при 100% выполнении плана.'
+      });
+    }
+
     let responsible_name = '';
     const user = await getAsync('SELECT name FROM users WHERE id = ?', [responsible_id]);
     if (!user) {
@@ -67,9 +93,16 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     await runAsync(`
       INSERT INTO projects (name, stage, responsible_id, responsible_name, platform, priority, plan_reels, done_reels, start_date, comment)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [name, stage || '', responsible_id || null, responsible_name, platform || '', priority || 5, plan_reels || 0, done_reels || 0, start_date || '', comment || '']);
+    `, [trimmedName, stage || '', responsible_id || null, responsible_name, platform || '', priority || 5, plan_reels || 0, done_reels || 0, start_date || '', comment || '']);
 
-    const project = await getAsync('SELECT * FROM projects WHERE name = ? ORDER BY id DESC LIMIT 1', [name]);
+    const project = await getAsync('SELECT * FROM projects WHERE name = ? ORDER BY id DESC LIMIT 1', [trimmedName]);
+
+    // Auto-create an empty analytics row so the project appears on the Analytics page
+    await runAsync(`
+      INSERT INTO analytics (project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, period)
+      VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, ?)
+    `, [project.id, project.name, project.responsible_id, project.responsible_name, start_date || '', currentPeriod()]);
+
     res.status(201).json(project);
   } catch (error) {
     console.error(error);
@@ -79,13 +112,20 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
 
 // PUT update project - admin only
 router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
-  const { name, stage, responsible_id, platform, priority, plan_reels, done_reels, start_date, comment } = req.body;
+  const { name, stage, responsible_id, platform, priority, plan_reels, done_reels, start_date, comment, regular_posting_bonus } = req.body;
 
   try {
     const project = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
 
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+
+    if (name && name.trim() !== project.name) {
+      const duplicate = await findProjectByName(name.trim(), parseInt(req.params.id, 10));
+      if (duplicate) {
+        return res.status(400).json({ error: 'Проект с таким названием уже существует' });
+      }
     }
 
     let responsible_name = project.responsible_name;
@@ -102,14 +142,43 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
       }
     }
 
+    const newResponsibleId = responsible_id !== undefined ? responsible_id : project.responsible_id;
+    const newName = name ? name.trim() : project.name;
+    const newStage = stage !== undefined ? stage : project.stage;
+    const newPlan = plan_reels !== undefined ? plan_reels : project.plan_reels;
+    const newDone = done_reels !== undefined ? done_reels : project.done_reels;
+
+    // "Готово" allowed only when 100% of plan is done
+    if (newStage === 'Готово' && newDone < newPlan) {
+      return res.status(400).json({
+        error: `Этап «Готово» можно поставить только при 100% выполнении плана. Сейчас сделано ${newDone} из ${newPlan}.`
+      });
+    }
+
+    const newPostingBonus = regular_posting_bonus !== undefined
+      ? (regular_posting_bonus ? 1 : 0)
+      : project.regular_posting_bonus;
+
     await runAsync(`
       UPDATE projects
-      SET name = ?, stage = ?, responsible_id = ?, responsible_name = ?, platform = ?, priority = ?, plan_reels = ?, done_reels = ?, start_date = ?, comment = ?
+      SET name = ?, stage = ?, responsible_id = ?, responsible_name = ?, platform = ?, priority = ?, plan_reels = ?, done_reels = ?, regular_posting_bonus = ?, start_date = ?, comment = ?
       WHERE id = ?
-    `, [name || project.name, stage !== undefined ? stage : project.stage, responsible_id !== undefined ? responsible_id : project.responsible_id,
+    `, [newName, newStage, newResponsibleId,
       responsible_name, platform || project.platform, priority !== undefined ? priority : project.priority,
-      plan_reels !== undefined ? plan_reels : project.plan_reels, done_reels !== undefined ? done_reels : project.done_reels,
+      newPlan, newDone, newPostingBonus,
       start_date || project.start_date, comment || project.comment, req.params.id]);
+
+    // Keep tasks in sync: task.responsible always mirrors project.responsible
+    await runAsync(
+      'UPDATE tasks SET project_name = ?, responsible_id = ?, responsible_name = ? WHERE project_id = ?',
+      [newName, newResponsibleId, responsible_name, req.params.id]
+    );
+
+    // Keep analytics in sync with project rename / reassignment
+    await runAsync(
+      'UPDATE analytics SET project_name = ?, responsible_id = ?, responsible_name = ? WHERE project_id = ?',
+      [newName, newResponsibleId, responsible_name, req.params.id]
+    );
 
     const updated = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     res.json(updated);
@@ -128,6 +197,8 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    await runAsync('DELETE FROM analytics WHERE project_id = ?', [req.params.id]);
+    await runAsync('DELETE FROM tasks WHERE project_id = ?', [req.params.id]);
     await runAsync('DELETE FROM projects WHERE id = ?', [req.params.id]);
     res.json({ message: 'Project deleted' });
   } catch (error) {
@@ -160,6 +231,18 @@ router.post('/:id/assign', verifyToken, requireAdmin, async (req, res) => {
       SET responsible_id = ?, responsible_name = ?
       WHERE id = ?
     `, [userId, user.name, req.params.id]);
+
+    // Cascade to tasks of this project
+    await runAsync(
+      'UPDATE tasks SET responsible_id = ?, responsible_name = ? WHERE project_id = ?',
+      [userId, user.name, req.params.id]
+    );
+
+    // Cascade to analytics of this project
+    await runAsync(
+      'UPDATE analytics SET responsible_id = ?, responsible_name = ? WHERE project_id = ?',
+      [userId, user.name, req.params.id]
+    );
 
     const updated = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     res.json(updated);

@@ -67,6 +67,14 @@ async function loadAppData() {
     const financeParams = await api.get('/finance/params');
     state.financeParams = financeParams || {};
 
+    // Load expenses (admin only)
+    if (state.isAdmin()) {
+      const expenses = await api.get('/expenses');
+      state.expenses = expenses || [];
+    } else {
+      state.expenses = [];
+    }
+
     // Update UI
     updateUserDisplay();
     updateAdminSection();
@@ -176,6 +184,14 @@ function setupModalHandlers() {
     addAccessBtn.addEventListener('click', openAccessModal);
   }
 
+  // Expense modal
+  const addExpenseBtn = document.getElementById('addExpenseBtn');
+  if (addExpenseBtn) {
+    addExpenseBtn.addEventListener('click', openExpenseModal);
+  }
+  const expenseForm = document.getElementById('expenseForm');
+  if (expenseForm) expenseForm.addEventListener('submit', saveExpense);
+
   // Form submit handlers (create / update)
   const projectForm = document.getElementById('projectForm');
   if (projectForm) projectForm.addEventListener('submit', saveProject);
@@ -201,23 +217,8 @@ function setupModalHandlers() {
   const newReportTab = document.getElementById('newReportTab');
   const allReportsTab = document.getElementById('allReportsTab');
   if (newReportTab && allReportsTab) {
-    newReportTab.addEventListener('click', () => {
-      document.getElementById('newReportForm').style.display = 'block';
-      document.getElementById('allReportsTable').style.display = 'none';
-      newReportTab.style.background = 'var(--primary)';
-      newReportTab.style.color = 'white';
-      allReportsTab.style.background = '';
-      allReportsTab.style.color = '';
-    });
-
-    allReportsTab.addEventListener('click', () => {
-      document.getElementById('newReportForm').style.display = 'none';
-      document.getElementById('allReportsTable').style.display = 'block';
-      allReportsTab.style.background = 'var(--primary)';
-      allReportsTab.style.color = 'white';
-      newReportTab.style.background = '';
-      newReportTab.style.color = '';
-    });
+    newReportTab.addEventListener('click', () => showReportTab('new'));
+    allReportsTab.addEventListener('click', () => showReportTab('all'));
   }
 
   // Finance tabs
@@ -225,47 +226,38 @@ function setupModalHandlers() {
 }
 
 function setupFinanceTabs() {
-  const financeSettingsTab = document.getElementById('financeSettingsTab');
   const financeReportTab = document.getElementById('financeReportTab');
   const financeAnalyticsTab = document.getElementById('financeAnalyticsTab');
 
-  if (!financeSettingsTab) return;
+  if (!financeReportTab || !financeAnalyticsTab) return;
 
-  financeSettingsTab.addEventListener('click', () => {
-    document.getElementById('financeSettings').style.display = 'block';
-    document.getElementById('financeReport').style.display = 'none';
-    document.getElementById('financeAnalytics').style.display = 'none';
-    financeSettingsTab.style.background = 'var(--primary)';
-    financeSettingsTab.style.color = 'white';
-    financeReportTab.style.background = '';
-    financeReportTab.style.color = '';
-    financeAnalyticsTab.style.background = '';
-    financeAnalyticsTab.style.color = '';
-  });
-
-  financeReportTab.addEventListener('click', () => {
-    document.getElementById('financeSettings').style.display = 'none';
+  const showPayroll = () => {
     document.getElementById('financeReport').style.display = 'block';
     document.getElementById('financeAnalytics').style.display = 'none';
+    financeReportTab.classList.replace('btn-secondary', 'btn-primary');
     financeReportTab.style.background = 'var(--primary)';
     financeReportTab.style.color = 'white';
-    financeSettingsTab.style.background = '';
-    financeSettingsTab.style.color = '';
+    financeReportTab.style.border = 'none';
+    financeAnalyticsTab.classList.replace('btn-primary', 'btn-secondary');
     financeAnalyticsTab.style.background = '';
     financeAnalyticsTab.style.color = '';
-  });
-
-  financeAnalyticsTab.addEventListener('click', () => {
-    document.getElementById('financeSettings').style.display = 'none';
+    financeAnalyticsTab.style.border = '';
+  };
+  const showAnalytics = () => {
     document.getElementById('financeReport').style.display = 'none';
     document.getElementById('financeAnalytics').style.display = 'block';
+    financeAnalyticsTab.classList.replace('btn-secondary', 'btn-primary');
     financeAnalyticsTab.style.background = 'var(--primary)';
     financeAnalyticsTab.style.color = 'white';
-    financeSettingsTab.style.background = '';
-    financeSettingsTab.style.color = '';
+    financeAnalyticsTab.style.border = 'none';
+    financeReportTab.classList.replace('btn-primary', 'btn-secondary');
     financeReportTab.style.background = '';
     financeReportTab.style.color = '';
-  });
+    financeReportTab.style.border = '';
+  };
+
+  financeReportTab.addEventListener('click', showPayroll);
+  financeAnalyticsTab.addEventListener('click', showAnalytics);
 }
 
 function handleDataActionClick(e) {
@@ -329,10 +321,24 @@ function handleDataActionChange(e) {
     case 'preview-screenshot':
       previewScreenshot(target);
       break;
-    case 'update-finance-params':
-      saveFinanceParams();
+    case 'toggle-paid':
+      setProjectPaid(parseInt(target.dataset.id, 10), target.checked);
+      renderFinanceReport();
+      break;
+    case 'toggle-posting':
+      togglePostingBonus(parseInt(target.dataset.id, 10), target.checked);
       break;
   }
+}
+
+async function togglePostingBonus(projectId, enabled) {
+  const project = (state.projects || []).find(p => p.id === projectId);
+  if (!project) return;
+  const result = await api.put(`/projects/${projectId}`, { regular_posting_bonus: enabled ? 1 : 0 });
+  if (!result) return;
+  // Update local state
+  Object.assign(project, result);
+  renderFinanceReport();
 }
 
 function handleDataActionInput(e) {
@@ -365,6 +371,9 @@ function handleEdit(type, id) {
     case 'access':
       editAccess(id);
       break;
+    case 'expense':
+      editExpense(id);
+      break;
   }
 }
 
@@ -386,6 +395,9 @@ function handleDelete(type, id) {
       break;
     case 'access':
       deleteAccess(id);
+      break;
+    case 'expense':
+      deleteExpense(id);
       break;
   }
 }
@@ -644,6 +656,7 @@ function renderAnalytics() {
         <td>${a.views}</td>
         <td>${a.subs}</td>
         <td>${a.interactions}</td>
+        <td>${a.sales || 0}</td>
         <td>${escapeHtml(a.period)}</td>
         <td>
           <button class="btn-sm" data-action="edit" data-type="analytics" data-id="${a.id}">✏️</button>
@@ -711,8 +724,10 @@ function applyTaskFilters() {
         <td>${escapeHtml(task.responsible_name)}</td>
         <td>${escapeHtml(task.stage)}</td>
         <td>
-          <button class="btn-sm" data-action="edit" data-type="task" data-id="${task.id}">✏️</button>
-          ${state.isAdmin() ? `<button class="btn-sm btn-danger" data-action="delete" data-type="task" data-id="${task.id}">🗑️</button>` : ''}
+          ${state.isAdmin() ? `
+            <button class="btn-sm" data-action="edit" data-type="task" data-id="${task.id}">✏️</button>
+            <button class="btn-sm btn-danger" data-action="delete" data-type="task" data-id="${task.id}">🗑️</button>
+          ` : ''}
         </td>
       </tr>
     `;
@@ -832,6 +847,71 @@ function renderReportRows(reports) {
   });
 }
 
+function showReportTab(which) {
+  const form = document.getElementById('newReportForm');
+  const table = document.getElementById('allReportsTable');
+  const newTab = document.getElementById('newReportTab');
+  const allTab = document.getElementById('allReportsTab');
+  if (!form || !table || !newTab || !allTab) return;
+
+  const activate = (btn) => {
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-primary');
+    btn.style.background = 'var(--primary)';
+    btn.style.color = 'white';
+    btn.style.border = 'none';
+  };
+  const deactivate = (btn) => {
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-secondary');
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.border = '';
+  };
+
+  if (which === 'new') {
+    form.style.display = 'block';
+    table.style.display = 'none';
+    activate(newTab);
+    deactivate(allTab);
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const projectSelect = document.getElementById('reportProject');
+    if (projectSelect) {
+      projectSelect.onchange = updateReportReelsHint;
+      updateReportReelsHint();
+      projectSelect.focus();
+    }
+  } else {
+    form.style.display = 'none';
+    table.style.display = 'block';
+    activate(allTab);
+    deactivate(newTab);
+  }
+}
+
+function updateReportReelsHint() {
+  const projectId = parseInt(document.getElementById('reportProject').value, 10) || null;
+  const input = document.getElementById('reportReelsPublished');
+  const hint = document.getElementById('reportReelsHint');
+  if (!input || !hint) return;
+
+  if (!projectId) {
+    input.removeAttribute('max');
+    hint.textContent = '';
+    return;
+  }
+  const project = (state.projects || []).find(p => p.id === projectId);
+  if (!project || !project.plan_reels) {
+    input.removeAttribute('max');
+    hint.textContent = '';
+    return;
+  }
+  const remaining = Math.max(0, (project.plan_reels || 0) - (project.done_reels || 0));
+  input.max = remaining;
+  hint.textContent = `План ${project.plan_reels}, уже сделано ${project.done_reels || 0}, осталось: ${remaining}`;
+  hint.style.color = remaining === 0 ? 'var(--danger, #dc2626)' : 'var(--gray)';
+}
+
 async function submitReport() {
   const projectId = parseInt(document.getElementById('reportProject').value, 10) || null;
   if (!projectId) {
@@ -840,7 +920,6 @@ async function submitReport() {
   }
 
   const project = state.projects.find(p => p.id === projectId);
-  const reelsCreated = parseInt(document.getElementById('reportReelsCreated').value, 10) || 0;
   const reelsPublished = parseInt(document.getElementById('reportReelsPublished').value, 10) || 0;
   const platforms = Array.from(document.querySelectorAll('.reportPlatform:checked')).map(input => input.value).join(', ');
   const comment = document.getElementById('reportComment').value.trim();
@@ -854,7 +933,6 @@ async function submitReport() {
     project_name: project?.name || '',
     date,
     time,
-    reels_created: reelsCreated,
     reels_published: reelsPublished,
     platforms,
     comment,
@@ -865,16 +943,19 @@ async function submitReport() {
   if (!result) return;
 
   state.reports = (await api.get('/reports')) || [];
+  // Project's done_reels changes whenever a report is submitted — refresh projects
+  state.projects = (await api.get('/projects')) || [];
   renderReports();
   showToast('Отчёт отправлен', 'success');
 
   document.getElementById('reportProject').value = '';
-  document.getElementById('reportReelsCreated').value = 0;
   document.getElementById('reportReelsPublished').value = 0;
   document.querySelectorAll('.reportPlatform:checked').forEach(input => input.checked = false);
   document.getElementById('reportComment').value = '';
   document.getElementById('reportScreenshot').value = '';
   document.getElementById('screenshotPreview').innerHTML = '';
+
+  showReportTab('all');
 }
 
 function applyReportFilters() {
@@ -913,33 +994,8 @@ function clearReportFilters() {
 }
 
 function renderFinance() {
-  // Restore inputs from saved params (API returns snake_case; working copy is camelCase)
-  const p = state.financeParams || {};
-  const setVal = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.value = value;
-  };
-  setVal('baseSalary', p.base_salary ?? p.baseSalary ?? 4000);
-  setVal('baseReels', p.base_reels ?? p.baseReels ?? 80);
-  setVal('analyticsBonusThreshold', p.bonus_threshold ?? p.analyticsBonusThreshold ?? 500000);
-  setVal('analyticsBonusAmount', p.bonus_amount ?? p.analyticsBonusAmount ?? 1000);
-  setVal('otherExpenses', p.other_expenses ?? p.otherExpenses ?? 0);
-  updateFinanceParams();
-}
-
-async function saveFinanceParams() {
-  updateFinanceParams();
-  const p = state.financeParams;
-  const result = await api.put('/finance/params', {
-    base_salary: p.baseSalary,
-    base_reels: p.baseReels,
-    other_expenses: p.otherExpenses,
-    bonus_threshold: p.analyticsBonusThreshold,
-    bonus_amount: p.analyticsBonusAmount
-  });
-  if (result) {
-    showToast('Параметры расчёта сохранены', 'success');
-  }
+  renderFinanceReport();
+  renderFinanceAnalytics();
 }
 
 function renderAccess() {
@@ -979,7 +1035,14 @@ function openTaskModal() {
   document.getElementById('taskForm').reset();
   openModal('taskModal');
   populateDropdown('taskProject', state.projects || []);
-  populateDropdown('taskResponsible', state.users || []);
+  document.getElementById('taskResponsible').value = '';
+
+  const projectSelect = document.getElementById('taskProject');
+  projectSelect.onchange = () => {
+    const projId = parseInt(projectSelect.value) || null;
+    const proj = (state.projects || []).find(p => p.id === projId);
+    document.getElementById('taskResponsible').value = proj?.responsible_name || '';
+  };
 }
 
 function openAnalyticsModal() {
@@ -1002,6 +1065,53 @@ function openAccessModal() {
   document.getElementById('accessForm').reset();
   openModal('accessModal');
   populateDropdown('accessProject', state.projects || []);
+}
+
+function openExpenseModal() {
+  state.editingId = null;
+  document.getElementById('expenseForm').reset();
+  document.getElementById('expenseAmount').value = 0;
+  openModal('expenseModal');
+}
+
+async function saveExpense(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('expenseName').value.trim(),
+    amount: parseInt(document.getElementById('expenseAmount').value, 10) || 0
+  };
+  if (!data.name) {
+    showToast('Введите название статьи', 'error');
+    return;
+  }
+  const id = state.editingId;
+  const result = id
+    ? await api.put(`/expenses/${id}`, data)
+    : await api.post('/expenses', data);
+  if (!result) return;
+
+  closeModal('expenseModal');
+  state.editingId = null;
+  state.expenses = (await api.get('/expenses')) || [];
+  renderFinanceReport();
+  showToast(id ? 'Статья обновлена' : 'Статья добавлена', 'success');
+}
+
+function editExpense(id) {
+  const item = (state.expenses || []).find(e => e.id === id);
+  if (!item) return;
+  openExpenseModal();
+  state.editingId = id;
+  document.getElementById('expenseName').value = item.name || '';
+  document.getElementById('expenseAmount').value = item.amount || 0;
+}
+
+async function deleteExpense(id) {
+  const result = await api.delete(`/expenses/${id}`);
+  if (result === null) return;
+  state.expenses = state.expenses.filter(e => e.id !== id);
+  renderFinanceReport();
+  showToast('Статья удалена', 'success');
 }
 
 // ===== Projects CRUD =====
@@ -1067,18 +1177,12 @@ async function deleteProject(id) {
 async function saveTask(e) {
   e.preventDefault();
   const projectId = parseInt(document.getElementById('taskProject').value) || null;
-  const responsibleId = parseInt(document.getElementById('taskResponsible').value) || null;
-  const project = state.projects.find(p => p.id === projectId);
-  const responsible = (state.users || []).find(u => u.id === responsibleId);
 
   const data = {
     project_id: projectId,
-    project_name: project?.name || '',
     task_name: document.getElementById('taskName').value.trim(),
     start_date: document.getElementById('taskStartDate').value,
     end_date: document.getElementById('taskEndDate').value,
-    responsible_id: responsibleId,
-    responsible_name: responsible?.name || '',
     stage: document.getElementById('taskStage').value,
     comment: document.getElementById('taskComment').value
   };
@@ -1108,7 +1212,7 @@ function editTask(id) {
   document.getElementById('taskName').value = task.task_name || '';
   document.getElementById('taskStartDate').value = task.start_date || '';
   document.getElementById('taskEndDate').value = task.end_date || '';
-  document.getElementById('taskResponsible').value = task.responsible_id || '';
+  document.getElementById('taskResponsible').value = task.responsible_name || '';
   document.getElementById('taskStage').value = task.stage || '';
   document.getElementById('taskComment').value = task.comment || '';
 }
@@ -1234,6 +1338,7 @@ async function saveAnalytics(e) {
     subs: parseInt(document.getElementById('analyticsSubs').value) || 0,
     total_subs: parseInt(document.getElementById('analyticsTotalSubs').value) || 0,
     interactions: parseInt(document.getElementById('analyticsInteractions').value) || 0,
+    sales: parseInt(document.getElementById('analyticsSales').value) || 0,
     period: document.getElementById('analyticsPeriod').value
   };
 
@@ -1265,6 +1370,7 @@ function editAnalytics(id) {
   document.getElementById('analyticsSubs').value = a.subs ?? 0;
   document.getElementById('analyticsTotalSubs').value = a.total_subs ?? 0;
   document.getElementById('analyticsInteractions').value = a.interactions ?? 0;
+  document.getElementById('analyticsSales').value = a.sales ?? 0;
   document.getElementById('analyticsPeriod').value = a.period || '';
 }
 
@@ -1327,116 +1433,213 @@ async function deleteAccess(id) {
   renderAccess();
 }
 
-function updateFinanceParams() {
-  const financeParams = state.financeParams = state.financeParams || {};
-  financeParams.baseSalary = parseFloat(document.getElementById('baseSalary')?.value || 4000);
-  financeParams.baseReels = parseFloat(document.getElementById('baseReels')?.value || 80);
-  financeParams.analyticsBonusThreshold = parseInt(document.getElementById('analyticsBonusThreshold')?.value || 500000, 10);
-  financeParams.analyticsBonusAmount = parseInt(document.getElementById('analyticsBonusAmount')?.value || 1000, 10);
-  financeParams.otherExpenses = parseFloat(document.getElementById('otherExpenses')?.value || 0);
-  const pricePerReel = Math.round(financeParams.baseSalary / financeParams.baseReels);
 
-  const priceEl = document.getElementById('pricePerReel');
-  if (priceEl) {
-    priceEl.textContent = pricePerReel + '₽';
+// ---- Constants from Регламент ----
+const PAYROLL = {
+  BASE_SALARY: 4000,     // 100% выполнения плана
+  BONUS_AMOUNT: 1000,    // одна премия
+  VIEWS_THRESHOLD: 500000,
+  SUBS_THRESHOLD: 2000,
+  SALES_THRESHOLD: 200
+};
+
+// Aggregate analytics totals for a single project
+function getProjectAnalyticsTotals(projectId) {
+  const rows = (state.analytics || []).filter(a => a.project_id === projectId);
+  return rows.reduce((acc, a) => ({
+    views: acc.views + (parseInt(a.views, 10) || 0),
+    subs: acc.subs + (parseInt(a.subs, 10) || 0),
+    sales: acc.sales + (parseInt(a.sales, 10) || 0)
+  }), { views: 0, subs: 0, sales: 0 });
+}
+
+// Calculate salary + bonus for a single project. Only Готово / Отказ project payments are non-zero.
+function calculateProjectPayout(project) {
+  const plan = parseInt(project.plan_reels, 10) || 80;
+  const done = parseInt(project.done_reels, 10) || 0;
+
+  let salary = 0;
+  if (project.stage === 'Готово') {
+    salary = PAYROLL.BASE_SALARY;
+  } else if (project.stage === 'Отказ') {
+    const halfPay = Math.round(PAYROLL.BASE_SALARY / 2);
+    const actualPay = Math.round(done * PAYROLL.BASE_SALARY / plan);
+    // 50% if done ≥ 50% of plan, else actual (linear)
+    salary = (done >= plan / 2) ? halfPay : actualPay;
   }
 
-  const bonusRuleEl = document.getElementById('bonusRule');
-  if (bonusRuleEl) {
-    bonusRuleEl.textContent = `+${financeParams.analyticsBonusAmount}₽ за ${financeParams.analyticsBonusThreshold.toLocaleString('ru-RU')} просмотров`;
-  }
-
-  renderFinanceReport();
-  renderFinanceAnalytics();
-}
-
-function getEmployeeDoneReels(employeeId) {
-  return state.projects.reduce((sum, project) => {
-    return sum + ((project.responsible_id === employeeId) ? (parseInt(project.done_reels, 10) || 0) : 0);
-  }, 0);
-}
-
-function getEmployeeViews(employeeId) {
-  return state.analytics.reduce((sum, item) => {
-    return sum + ((item.responsible_id === employeeId) ? (parseInt(item.views, 10) || 0) : 0);
-  }, 0);
-}
-
-function getEmployeeSalary(employee) {
-  const financeParams = state.financeParams = state.financeParams || {};
-  const doneReels = getEmployeeDoneReels(employee.id);
-  const views = getEmployeeViews(employee.id);
-  const baseSalary = Math.round(Math.min(doneReels, financeParams.baseReels) / financeParams.baseReels * financeParams.baseSalary);
-  const bonus = views >= financeParams.analyticsBonusThreshold ? financeParams.analyticsBonusAmount : 0;
-  const total = baseSalary + bonus;
-
-  return {
-    name: employee.name || 'Неизвестный',
-    doneReels,
-    views,
-    baseSalary,
-    bonus,
-    total
+  // Four independent bonuses, +1000 ₽ each
+  const totals = getProjectAnalyticsTotals(project.id);
+  const bonuses = {
+    regularPosting: !!project.regular_posting_bonus,
+    views: totals.views >= PAYROLL.VIEWS_THRESHOLD,
+    subs: totals.subs >= PAYROLL.SUBS_THRESHOLD,
+    sales: totals.sales >= PAYROLL.SALES_THRESHOLD
   };
+  const bonusCount = Object.values(bonuses).filter(Boolean).length;
+  const bonus = bonusCount * PAYROLL.BONUS_AMOUNT;
+
+  return { salary, bonus, total: salary + bonus, bonuses, totals, plan, done };
 }
 
-function getTotalPayroll() {
-  return state.employees.reduce((sum, employee) => sum + getEmployeeSalary(employee).total, 0);
+function getPayablesByEmployee() {
+  // Group payable projects (Готово / Отказ) by responsible_name
+  const payable = (state.projects || []).filter(p => p.stage === 'Готово' || p.stage === 'Отказ');
+  const groups = new Map();
+  payable.forEach(p => {
+    const key = p.responsible_name || 'Без ответственного';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  });
+  return groups;
 }
 
-function getTotalBonus() {
-  return state.employees.reduce((sum, employee) => sum + getEmployeeSalary(employee).bonus, 0);
+// Per-project paid checkbox state, persisted in localStorage
+function isProjectPaid(projectId) {
+  try {
+    const map = JSON.parse(localStorage.getItem('paidProjects') || '{}');
+    return !!map[projectId];
+  } catch { return false; }
+}
+function setProjectPaid(projectId, paid) {
+  try {
+    const map = JSON.parse(localStorage.getItem('paidProjects') || '{}');
+    if (paid) map[projectId] = true; else delete map[projectId];
+    localStorage.setItem('paidProjects', JSON.stringify(map));
+  } catch {}
 }
 
-function getTotalViews() {
-  return state.analytics.reduce((sum, item) => sum + (parseInt(item.views, 10) || 0), 0);
+function getTotalExpenses() {
+  const fp = state.financeParams || {};
+  const other = parseInt(fp.other_expenses ?? fp.otherExpenses ?? 0, 10);
+  const tools = (state.expenses || []).reduce((s, e) => s + (parseInt(e.amount, 10) || 0), 0);
+  return other + tools;
 }
 
 function renderFinanceReport() {
-  const financeParams = state.financeParams = state.financeParams || {};
   const tbody = document.getElementById('financePayrollTable');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
-  if (!state.employees || state.employees.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray);">Нет сотрудников для расчёта выплат.</td></tr>';
+  const groups = getPayablesByEmployee();
+  const cellOk = (active) => active
+    ? `<td style="text-align: center; color: var(--success); font-weight: 600;">+1 000</td>`
+    : `<td style="text-align: center; color: var(--gray);">—</td>`;
+
+  if (groups.size === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: var(--gray);">Нет проектов в статусе «Готово» или «Отказ» для расчёта выплат.</td></tr>';
+  } else {
+    let totalBase = 0;
+    let totalBonus = 0;
+
+    Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0], 'ru')).forEach(([name, projects]) => {
+      let empSalary = 0;
+      let empBonus = 0;
+
+      projects.forEach((project, idx) => {
+        const { salary, bonus, total, bonuses, totals, plan, done } = calculateProjectPayout(project);
+        empSalary += salary;
+        empBonus += bonus;
+        const paid = isProjectPaid(project.id);
+        const rowBg = paid ? 'background: #ECFDF5;' : '';
+
+        tbody.innerHTML += `
+          <tr style="${rowBg}">
+            <td><input type="checkbox" data-action="toggle-paid" data-id="${project.id}" ${paid ? 'checked' : ''}></td>
+            <td>${idx === 0 ? `<strong>${escapeHtml(name)}</strong>` : ''}</td>
+            <td>${escapeHtml(project.name)}</td>
+            <td>${escapeHtml(project.stage)}</td>
+            <td>${plan} / ${done}</td>
+            <td>${salary.toLocaleString('ru-RU')} ₽</td>
+            <td style="text-align: center;">
+              <input type="checkbox" data-action="toggle-posting" data-id="${project.id}" ${bonuses.regularPosting ? 'checked' : ''}>
+            </td>
+            ${cellOk(bonuses.views)}
+            ${cellOk(bonuses.subs)}
+            ${cellOk(bonuses.sales)}
+            <td><strong>${total.toLocaleString('ru-RU')} ₽</strong></td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML += `
+        <tr style="background: #FEF3C7; font-weight: 600;">
+          <td></td>
+          <td colspan="4" style="text-align: right;">Итого ${escapeHtml(name)}: оклад ${empSalary.toLocaleString('ru-RU')} ₽ + премии ${empBonus.toLocaleString('ru-RU')} ₽</td>
+          <td>${empSalary.toLocaleString('ru-RU')} ₽</td>
+          <td colspan="4" style="text-align: right;">${empBonus.toLocaleString('ru-RU')} ₽</td>
+          <td>${(empSalary + empBonus).toLocaleString('ru-RU')} ₽</td>
+        </tr>
+      `;
+
+      totalBase += empSalary;
+      totalBonus += empBonus;
+    });
+
+    tbody.innerHTML += `
+      <tr style="background: #D1FAE5; font-weight: 700;">
+        <td></td>
+        <td colspan="4" style="text-align: right;">ВСЕГО: оклад ${totalBase.toLocaleString('ru-RU')} ₽ + премии ${totalBonus.toLocaleString('ru-RU')} ₽</td>
+        <td>${totalBase.toLocaleString('ru-RU')} ₽</td>
+        <td colspan="4" style="text-align: right;">${totalBonus.toLocaleString('ru-RU')} ₽</td>
+        <td>${(totalBase + totalBonus).toLocaleString('ru-RU')} ₽</td>
+      </tr>
+    `;
+
+    document.getElementById('totalBaseSalary').textContent = totalBase.toLocaleString('ru-RU') + ' ₽';
+    document.getElementById('totalBonusSalary').textContent = totalBonus.toLocaleString('ru-RU') + ' ₽';
+    const totalExpenses = getTotalExpenses();
+    document.getElementById('totalExpenses').textContent = totalExpenses.toLocaleString('ru-RU') + ' ₽';
+    document.getElementById('totalPayout').textContent = (totalBase + totalBonus + totalExpenses).toLocaleString('ru-RU') + ' ₽';
+  }
+
+  renderExpensesTable();
+}
+
+function renderExpensesTable() {
+  const tbody = document.getElementById('financeExpensesTable');
+  if (!tbody) return;
+
+  const rows = state.expenses || [];
+  tbody.innerHTML = '';
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: var(--gray);">Нет статей расходов. Добавьте через «+ Добавить статью».</td></tr>';
     return;
   }
 
-  let totalBase = 0;
-  let totalBonus = 0;
-
-  state.employees.forEach(employee => {
-    const salary = getEmployeeSalary(employee);
-    totalBase += salary.baseSalary;
-    totalBonus += salary.bonus;
-
+  rows.forEach(e => {
     tbody.innerHTML += `
       <tr>
-        <td>${escapeHtml(salary.name)}</td>
-        <td>${salary.doneReels}</td>
-        <td>${salary.views.toLocaleString('ru-RU')}</td>
-        <td>${salary.baseSalary.toLocaleString('ru-RU')}₽</td>
-        <td>${salary.bonus.toLocaleString('ru-RU')}₽</td>
-        <td>${salary.total.toLocaleString('ru-RU')}₽</td>
-        <td>${salary.doneReels >= financeParams.baseReels ? 'Норма выполнена' : 'Норма не выполнена'}</td>
+        <td>${escapeHtml(e.name)}</td>
+        <td>${(parseInt(e.amount, 10) || 0).toLocaleString('ru-RU')} ₽</td>
+        <td>
+          <button class="btn-sm" data-action="edit" data-type="expense" data-id="${e.id}">✏️</button>
+          <button class="btn-sm btn-danger" data-action="delete" data-type="expense" data-id="${e.id}">🗑️</button>
+        </td>
       </tr>
     `;
   });
-
-  document.getElementById('totalBaseSalary').textContent = totalBase.toLocaleString('ru-RU') + '₽';
-  document.getElementById('totalBonusSalary').textContent = totalBonus.toLocaleString('ru-RU') + '₽';
-  document.getElementById('totalExpenses').textContent = financeParams.otherExpenses.toLocaleString('ru-RU') + '₽';
-  document.getElementById('totalPayout').textContent = (totalBase + totalBonus + financeParams.otherExpenses).toLocaleString('ru-RU') + '₽';
 }
 
 function renderFinanceAnalytics() {
-  const financeParams = state.financeParams = state.financeParams || {};
-  const totalViews = getTotalViews();
-  const totalPayroll = getTotalPayroll();
-  const totalBonus = getTotalBonus();
-  const totalPayout = totalPayroll + financeParams.otherExpenses;
+  // Aggregate from payable projects (Готово / Отказ)
+  const groups = getPayablesByEmployee();
+  let payroll = 0;
+  let bonus = 0;
+  const employeeViews = new Map();
+  groups.forEach((projects, name) => {
+    projects.forEach(project => {
+      const p = calculateProjectPayout(project);
+      payroll += p.salary;
+      bonus += p.bonus;
+      employeeViews.set(name, (employeeViews.get(name) || 0) + p.totals.views);
+    });
+  });
+
+  const totalExpenses = getTotalExpenses();
+  const totalPayout = payroll + bonus + totalExpenses;
+  const totalViews = (state.analytics || []).reduce((s, a) => s + (parseInt(a.views, 10) || 0), 0);
 
   const totalViewsEl = document.getElementById('totalViewsAll');
   const totalEmployeesEl = document.getElementById('totalEmployeesAll');
@@ -1444,15 +1647,14 @@ function renderFinanceAnalytics() {
   const totalPayoutAllEl = document.getElementById('totalPayoutAll');
 
   if (totalViewsEl) totalViewsEl.textContent = totalViews.toLocaleString('ru-RU');
-  if (totalEmployeesEl) totalEmployeesEl.textContent = state.employees.length;
-  if (totalBonusRuleEl) totalBonusRuleEl.textContent = `+${financeParams.analyticsBonusAmount}₽ за ${financeParams.analyticsBonusThreshold.toLocaleString('ru-RU')} просмотров`;
+  if (totalEmployeesEl) totalEmployeesEl.textContent = (state.employees || []).length;
+  if (totalBonusRuleEl) totalBonusRuleEl.textContent = `4 премии × ${PAYROLL.BONUS_AMOUNT} ₽ за проект`;
   if (totalPayoutAllEl) totalPayoutAllEl.textContent = totalPayout.toLocaleString('ru-RU') + '₽';
 
-  renderFinanceCharts(totalPayroll, totalBonus, totalPayout);
+  renderFinanceCharts(payroll, bonus, totalExpenses, employeeViews);
 }
 
-function renderFinanceCharts(payroll, bonus, payout) {
-  const financeParams = state.financeParams = state.financeParams || {};
+function renderFinanceCharts(payroll, bonus, expenses, employeeViews) {
   const chartPayrollCtx = document.getElementById('chartPayroll');
   const chartViewsCtx = document.getElementById('chartViews');
 
@@ -1463,26 +1665,20 @@ function renderFinanceCharts(payroll, bonus, payout) {
     window.financeChartPayroll = new Chart(chartPayrollCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Базовая зарплата', 'Премии', 'Расходы'],
+        labels: ['Оклады', 'Премии', 'Расходы'],
         datasets: [{
-          data: [payroll, bonus, financeParams.otherExpenses],
+          data: [payroll, bonus, expenses],
           backgroundColor: ['#2563EB', '#10B981', '#EF4444'],
           borderColor: '#FFFFFF',
           borderWidth: 2
         }]
       },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom' } }
-      }
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
     });
   }
 
-  const topEmployees = state.employees
-    .map(employee => ({
-      name: employee.name || 'Неизвестный',
-      views: getEmployeeViews(employee.id)
-    }))
+  const topEmployees = Array.from(employeeViews.entries())
+    .map(([name, views]) => ({ name, views }))
     .sort((a, b) => b.views - a.views)
     .slice(0, 8);
 
@@ -1492,15 +1688,12 @@ function renderFinanceCharts(payroll, bonus, payout) {
       data: {
         labels: topEmployees.map(item => item.name),
         datasets: [{
-          label: 'Просмотры',
+          label: 'Просмотры (по оплаченным проектам)',
           data: topEmployees.map(item => item.views),
           backgroundColor: '#2563EB'
         }]
       },
-      options: {
-        responsive: true,
-        scales: { y: { beginAtZero: true } }
-      }
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
     });
   }
 }

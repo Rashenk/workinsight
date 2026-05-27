@@ -314,6 +314,7 @@
                                     <th>Просмотры</th>
                                     <th>Подписки</th>
                                     <th>Взаимодействия</th>
+                                    <th>Продажи</th>
                                     <th>Период</th>
                                     <th>Действия</th>
                                 </tr>
@@ -414,8 +415,8 @@
             <!-- REPORTS -->
             <div class="content-section" id="reportsSection">
                 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="btn-primary" id="newReportTab" style="background: var(--primary); color: white; border: none;">📝 Новый отчёт</button>
-                    <button class="btn-secondary" id="allReportsTab">📋 Все отчёты</button>
+                    <button class="btn-secondary" id="newReportTab" type="button">📝 Новый отчёт</button>
+                    <button class="btn-primary" id="allReportsTab" type="button" style="background: var(--primary); color: white; border: none;">📋 Все отчёты</button>
                 </div>
 
                 <div class="table-section" style="margin-bottom: 20px;">
@@ -441,7 +442,7 @@
                 </div>
 
                 <!-- New Report Form -->
-                <div id="newReportForm">
+                <div id="newReportForm" style="display: none;">
                     <div class="table-section">
                         <div class="table-header">
                             <div class="table-title">Создать новый отчёт</div>
@@ -454,12 +455,9 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>План рилсов *</label>
-                                <input type="number" id="reportReelsCreated" value="0" min="0">
-                            </div>
-                            <div class="form-group">
                                 <label>Сделано рилсов *</label>
                                 <input type="number" id="reportReelsPublished" value="0" min="0">
+                                <small id="reportReelsHint" style="color: var(--gray); font-size: 12px; display: block; margin-top: 4px;"></small>
                             </div>
                             <div class="form-group">
                                 <label>Платформы</label>
@@ -484,7 +482,7 @@
                 </div>
 
                 <!-- All Reports Table -->
-                <div id="allReportsTable" style="display: none;">
+                <div id="allReportsTable">
                     <div class="table-section">
                         <div class="table-header">
                             <div class="table-title">Все отчёты</div>
@@ -1249,72 +1247,83 @@ FOMO — страх упустить что-то важное
 
                 <!-- Tabs -->
                 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="btn-primary" id="financeSettingsTab" style="background: var(--primary); color: white; border: none;">⚙️ Настройки</button>
-                    <button class="btn-secondary" id="financeReportTab">📊 Выплаты сотрудникам</button>
-                    <button class="btn-secondary" id="financeAnalyticsTab">📈 Итоги и графики</button>
+                    <button class="btn-primary" id="financeReportTab" type="button" style="background: var(--primary); color: white; border: none;">📊 Выплаты сотрудникам</button>
+                    <button class="btn-secondary" id="financeAnalyticsTab" type="button">📈 Итоги и графики</button>
                 </div>
 
-                <!-- Settings -->
-                <div id="financeSettings">
-                    <div class="table-section">
-                        <div class="table-header">
-                            <div class="table-title">Финансовые параметры</div>
-                        </div>
-                        <div style="padding: 20px;">
-                            <div class="form-group">
-                                <label>Базовая зарплата сотрудника (₽)</label>
-                                <input type="number" id="baseSalary" value="4000" min="0" step="100" data-action="update-finance-params">
-                                <small style="color: var(--gray);">Выплачивается при выполнении нормы 80 рилсов.</small>
-                            </div>
-                            <div class="form-group">
-                                <label>Норма рилсов в месяц</label>
-                                <input type="number" id="baseReels" value="80" min="1" step="10" data-action="update-finance-params">
-                                <small style="color: var(--gray);">Если сотрудник сделал минимум эту норму, он получает базовую зарплату.</small>
-                            </div>
-                            <div class="form-group">
-                                <label>Порог просмотров для премии</label>
-                                <input type="number" id="analyticsBonusThreshold" value="500000" min="0" step="1000" data-action="update-finance-params">
-                                <small style="color: var(--gray);">Премия начисляется, если просмотры превысили порог.</small>
-                            </div>
-                            <div class="form-group">
-                                <label>Сумма премии по просмотрам (₽)</label>
-                                <input type="number" id="analyticsBonusAmount" value="1000" min="0" step="100" data-action="update-finance-params">
-                                <small style="color: var(--gray);">Фиксированная премия при достижении порога.</small>
-                            </div>
-                            <div style="background: #EFF6FF; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid var(--primary);">
-                                <strong>💡 Цена за рилс: <span id="pricePerReel" style="color: var(--primary); font-size: 18px;">50₽</span></strong>
-                                <small id="bonusRule" style="display: block; margin-top: 10px; color: var(--gray);">+1000₽ за 500 000 просмотров</small>
-                            </div>
-                            <div class="form-group">
-                                <label>Прочие расходы (₽/месяц)</label>
-                                <input type="number" id="otherExpenses" value="0" min="0" step="100" data-action="update-finance-params">
-                                <small style="color: var(--gray);">Софт, инструменты и другие расходы.</small>
-                            </div>
-                        </div>
+                <!-- Bonus rules card -->
+                <div class="table-section" style="margin-bottom: 20px;">
+                    <div class="table-header">
+                        <div class="table-title">📋 Правила оплаты за один проект</div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Составляющая</th>
+                                    <th style="text-align: right;">Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Базовая ставка (100% выполнение плана)</td><td style="text-align: right; color: var(--success); font-weight: 600;">4 000 ₽</td></tr>
+                                <tr><td>+ Бонус за системную выкладку (без пропусков)</td><td style="text-align: right; color: var(--success); font-weight: 600;">+1 000 ₽</td></tr>
+                                <tr><td>+ Бонус за 500 000 просмотров за месяц</td><td style="text-align: right; color: var(--success); font-weight: 600;">+1 000 ₽</td></tr>
+                                <tr><td>+ Бонус за 2 000 новых подписчиков</td><td style="text-align: right; color: var(--success); font-weight: 600;">+1 000 ₽</td></tr>
+                                <tr><td>+ Бонус за 200 продаж</td><td style="text-align: right; color: var(--success); font-weight: 600;">+1 000 ₽</td></tr>
+                                <tr style="background: #ECFDF5; font-weight: 700;"><td>Максимум за проект</td><td style="text-align: right; color: var(--success);">8 000 ₽</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
                 <!-- Payroll Report -->
-                <div id="financeReport" style="display: none;">
+                <div id="financeReport">
                     <div class="table-section">
                         <div class="table-header">
                             <div class="table-title">Выплаты сотрудникам</div>
                             <button class="btn-secondary" data-action="export-xlsx" data-table="financePayrollTable" data-filename="finance-payroll.xlsx">📥 Экспорт XLSX</button>
                         </div>
+                        <div style="padding: 12px 20px; background: #F9FAFB; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--gray);">
+                            В таблицу попадают только проекты со статусом <strong>«Готово»</strong> (100% выплата) и <strong>«Отказ»</strong> (50% или по факту, если сделано меньше половины плана).
+                        </div>
                         <div style="overflow-x: auto;">
                             <table>
                                 <thead>
                                     <tr>
+                                        <th style="width: 36px;" title="Выплачено">✓</th>
                                         <th>Сотрудник</th>
-                                        <th>Сделано рилсов</th>
-                                        <th>Просмотры</th>
-                                        <th>Базовая зарплата</th>
-                                        <th>Премия</th>
-                                        <th>Итого к выплате</th>
-                                        <th>Статус</th>
+                                        <th>Проект</th>
+                                        <th>Этап</th>
+                                        <th>План / Сделано</th>
+                                        <th>Оклад</th>
+                                        <th title="Системная выкладка без пропусков (+1000 ₽). Галочку ставит админ.">📅 Сист.</th>
+                                        <th title="+1000 ₽ если просмотры ≥ 500 000">👁 Просм.</th>
+                                        <th title="+1000 ₽ если подписки ≥ 2 000">👥 Подп.</th>
+                                        <th title="+1000 ₽ если продажи ≥ 200">💰 Прод.</th>
+                                        <th>Итого</th>
                                     </tr>
                                 </thead>
                                 <tbody id="financePayrollTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tools / expenses -->
+                    <div class="table-section" style="margin-top: 20px;">
+                        <div class="table-header">
+                            <div class="table-title">Расходы на инструменты</div>
+                            <button class="btn-primary" type="button" id="addExpenseBtn">+ Добавить статью</button>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Статья</th>
+                                        <th>Сумма</th>
+                                        <th style="width: 120px;">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeExpensesTable"></tbody>
                             </table>
                         </div>
                     </div>
@@ -1326,7 +1335,7 @@ FOMO — страх упустить что-то важное
                         <div style="padding: 20px;">
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                                 <div class="stat-card" style="border-left-color: var(--success);">
-                                    <div class="stat-label">Базовый фонд</div>
+                                    <div class="stat-label">Оклады по проектам</div>
                                     <div class="stat-value" id="totalBaseSalary">0₽</div>
                                 </div>
                                 <div class="stat-card" style="border-left-color: var(--primary);">
@@ -1334,7 +1343,7 @@ FOMO — страх упустить что-то важное
                                     <div class="stat-value" id="totalBonusSalary">0₽</div>
                                 </div>
                                 <div class="stat-card" style="border-left-color: var(--warning);">
-                                    <div class="stat-label">Прочие расходы</div>
+                                    <div class="stat-label">Инструменты + расходы</div>
                                     <div class="stat-value" id="totalExpenses">0₽</div>
                                 </div>
                                 <div class="stat-card" style="border-left-color: var(--danger);">
@@ -1397,9 +1406,6 @@ FOMO — страх упустить что-то важное
 
             <!-- ACCESS (Admin only) -->
             <div class="content-section" id="accessSection">
-                <div style="background: #FEE2E2; padding: 15px; border-left: 4px solid var(--danger); border-radius: 4px; margin-bottom: 20px;">
-                    <strong>⚠️ Конфиденциальные данные — только для руководителя</strong>
-                </div>
                 <div class="table-section">
                     <div class="table-header">
                         <div class="table-title">Доступы к проектам</div>
@@ -1450,6 +1456,7 @@ FOMO — страх упустить что-то важное
                     <option value="Проблемный">Проблемный</option>
                     <option value="На паузе">На паузе</option>
                     <option value="Готово">Готово</option>
+                    <option value="Отказ">Отказ</option>
                 </select>
             </div>
             <div class="form-group">
@@ -1520,10 +1527,8 @@ FOMO — страх упустить что-то важное
                 <input type="date" id="taskEndDate">
             </div>
             <div class="form-group">
-                <label>Ответственный *</label>
-                <select id="taskResponsible" required>
-                    <option value="">Выберите сотрудника</option>
-                </select>
+                <label>Ответственный</label>
+                <input type="text" id="taskResponsible" readonly placeholder="Определяется выбранным проектом" style="background: var(--bg-secondary, #f5f5f5); cursor: not-allowed;">
             </div>
             <div class="form-group">
                 <label>Этап *</label>
@@ -1632,6 +1637,10 @@ FOMO — страх упустить что-то важное
                 <input type="number" id="analyticsInteractions" min="0" value="0">
             </div>
             <div class="form-group">
+                <label>Продажи</label>
+                <input type="number" id="analyticsSales" min="0" value="0">
+            </div>
+            <div class="form-group">
                 <label>Период</label>
                 <input type="text" id="analyticsPeriod" placeholder="01.01-31.01">
             </div>
@@ -1672,6 +1681,27 @@ FOMO — страх упустить что-то важное
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" id="closeAccessModal">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal" id="expenseModal">
+    <div class="modal-content">
+        <div class="modal-header">Добавить/Редактировать статью расходов</div>
+        <form id="expenseForm">
+            <div class="form-group">
+                <label>Название *</label>
+                <input type="text" id="expenseName" required placeholder="ВПН, Клод, и т.д.">
+            </div>
+            <div class="form-group">
+                <label>Сумма (₽) *</label>
+                <input type="number" id="expenseAmount" min="0" step="50" value="0" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeExpenseModal">Отмена</button>
                 <button type="submit" class="btn-primary">Сохранить</button>
             </div>
         </form>
