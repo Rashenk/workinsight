@@ -131,7 +131,7 @@ function showLoginForm(event) {
   if (event) event.preventDefault();
   document.getElementById('loginForm').style.display = 'flex';
   document.getElementById('registerForm').style.display = 'none';
-  document.getElementById('passwordGroup').style.display = 'none';
+  document.getElementById('passwordGroup').style.display = 'block';
 }
 
 function showRegisterForm(event) {
@@ -140,19 +140,14 @@ function showRegisterForm(event) {
   document.getElementById('registerForm').style.display = 'flex';
 }
 
-// Role selector
+// Role selector — visual only. Roles are determined by the user record on the backend,
+// the password field stays visible for both options.
 document.addEventListener('DOMContentLoaded', () => {
   const roleBtns = document.querySelectorAll('.role-btn');
   roleBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       roleBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      // For now, admin login uses special handling
-      if (btn.dataset.role === 'admin') {
-        document.getElementById('passwordGroup').style.display = 'block';
-      } else {
-        document.getElementById('passwordGroup').style.display = 'none';
-      }
     });
   });
 });

@@ -1,6 +1,6 @@
 // Main application file
 
-let chartCompare, chartStages, chartViews, chartInteractions, chartIncome, chartProfitMargin;
+let chartCompare, chartStages, chartViews, chartInteractions, chartIncome, chartProfitMargin, chartByEmployee;
 
 async function initializeApp() {
   // Setup login/register buttons FIRST (before checking token)
@@ -54,15 +54,6 @@ async function loadAppData() {
       state.access = access || [];
     }
 
-    // Load daily reels
-    try {
-      const dailyReels = await api.get('/daily-reels');
-      state.dailyReels = dailyReels || [];
-    } catch (e) {
-      console.warn('Daily reels not available');
-      state.dailyReels = [];
-    }
-
     // Load finance params
     const financeParams = await api.get('/finance/params');
     state.financeParams = financeParams || {};
@@ -71,8 +62,12 @@ async function loadAppData() {
     if (state.isAdmin()) {
       const expenses = await api.get('/expenses');
       state.expenses = expenses || [];
+
+      const archived = await api.get('/projects/archived');
+      state.archivedProjects = archived || [];
     } else {
       state.expenses = [];
+      state.archivedProjects = [];
     }
 
     // Update UI
@@ -299,6 +294,10 @@ function handleDataActionClick(e) {
       e.preventDefault();
       handleDelete(target.dataset.type, parseInt(target.dataset.id));
       break;
+    case 'restore-project':
+      e.preventDefault();
+      restoreProject(parseInt(target.dataset.id, 10));
+      break;
   }
 }
 
@@ -322,8 +321,13 @@ function handleDataActionChange(e) {
       previewScreenshot(target);
       break;
     case 'toggle-paid':
-      setProjectPaid(parseInt(target.dataset.id, 10), target.checked);
-      renderFinanceReport();
+      if (target.checked) {
+        if (!confirm('Отправить проект в архив? Он исчезнет из выплат и активных проектов.')) {
+          target.checked = false;
+          return;
+        }
+        archiveProject(parseInt(target.dataset.id, 10));
+      }
       break;
     case 'toggle-posting':
       togglePostingBonus(parseInt(target.dataset.id, 10), target.checked);
@@ -410,7 +414,7 @@ function renderSection(section) {
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
   // Show selected section
-  // Convert 'daily-reels' to 'dailyReelsSection', 'dashboard' to 'dashboardSection', etc.
+  // Convert 'dashboard' to 'dashboardSection', etc.
   const sectionId = section
     .split('-')
     .map((word, i) => i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1))
@@ -432,11 +436,11 @@ function renderSection(section) {
     tasks: 'Задачи',
     employees: 'Сотрудники',
     reports: 'Отчёты',
-    'daily-reels': 'Рилс на сегодня',
     regulations: 'Регламент',
     guide: 'Гайд',
     finance: 'Финансы',
-    access: 'Доступы'
+    access: 'Доступы',
+    archive: 'Архив'
   };
 
   document.getElementById('pageTitle').textContent = titles[section] || 'Страница';
@@ -454,107 +458,157 @@ function renderSection(section) {
     renderEmployees();
   } else if (section === 'reports') {
     renderReports();
-  } else if (section === 'daily-reels') {
-    renderDailyReels();
   } else if (section === 'finance') {
     renderFinance();
   } else if (section === 'access') {
     renderAccess();
+  } else if (section === 'archive') {
+    renderArchive();
   }
 }
 
 // Stub functions for rendering - implement later
 function renderDashboard() {
-  renderDashboardTable();
+  renderDashboardKPI();
   renderDashboardCharts();
 }
 
-function renderDashboardTable() {
-  const tbody = document.getElementById('dashboardTable');
-  tbody.innerHTML = '';
+function renderDashboardKPI() {
+  const projects = state.projects || [];
+  const analytics = state.analytics || [];
 
-  // Filter for current user if not admin
-  let projects = state.projects;
-    if (!state.isAdmin()) {
-      projects = projects.filter(p => p.responsible_id === state.currentUserId);
-  }
+  // Status counts (всего/в работе/на паузе/готово)
+  document.getElementById('statTotal').textContent = projects.length;
+  document.getElementById('statActive').textContent = projects.filter(p => p.stage === 'В работе').length;
+  document.getElementById('statPause').textContent = projects.filter(p => p.stage === 'На паузе').length;
+  document.getElementById('statDone').textContent = projects.filter(p => p.stage === 'Готово').length;
 
-  projects.filter(p => p.stage === 'В работе').forEach(project => {
-    const progress = project.plan_reels > 0 ? Math.round((project.done_reels / project.plan_reels) * 100) : 0;
-    tbody.innerHTML += `
-      <tr>
-        <td>${escapeHtml(project.name)}</td>
-        <td>${escapeHtml(project.responsible_name)}</td>
-        <td>${escapeHtml(project.platform)}</td>
-        <td>${project.plan_reels}</td>
-        <td>${project.done_reels}</td>
-        <td>${progress}%</td>
-        <td><div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">
-          <div style="background: var(--primary); height: 100%; width: ${progress}%;"></div>
-        </div></td>
-      </tr>
-    `;
-  });
+  // Aggregate analytics totals (sum across all projects)
+  const totals = analytics.reduce((acc, a) => ({
+    views: acc.views + (parseInt(a.views, 10) || 0),
+    subs: acc.subs + (parseInt(a.subs, 10) || 0),
+    interactions: acc.interactions + (parseInt(a.interactions, 10) || 0),
+    sales: acc.sales + (parseInt(a.sales, 10) || 0)
+  }), { views: 0, subs: 0, interactions: 0, sales: 0 });
 
-  // Update stats
-  document.getElementById('statTotal').textContent = state.projects.length;
-  document.getElementById('statActive').textContent = state.projects.filter(p => p.stage === 'В работе').length;
-  document.getElementById('statPause').textContent = state.projects.filter(p => p.stage === 'На паузе').length;
-  document.getElementById('statDone').textContent = state.projects.filter(p => p.stage === 'Готово').length;
+  document.getElementById('statViews').textContent = totals.views.toLocaleString('ru-RU');
+  document.getElementById('statSubs').textContent = totals.subs.toLocaleString('ru-RU');
+  document.getElementById('statInteractions').textContent = totals.interactions.toLocaleString('ru-RU');
+  document.getElementById('statSales').textContent = totals.sales.toLocaleString('ru-RU');
+
+  // Plan execution
+  const totalPlan = projects.reduce((s, p) => s + (parseInt(p.plan_reels, 10) || 0), 0);
+  const totalDone = projects.reduce((s, p) => s + (parseInt(p.done_reels, 10) || 0), 0);
+  const overallPct = totalPlan > 0 ? Math.round((totalDone / totalPlan) * 100) : 0;
+
+  document.getElementById('statDoneReels').textContent = totalDone.toLocaleString('ru-RU');
+  document.getElementById('statPlanReels').textContent = totalPlan.toLocaleString('ru-RU');
+  document.getElementById('statProgress').textContent = overallPct + '%';
+
+  // Top project by % of plan execution
+  const withProgress = projects
+    .filter(p => (parseInt(p.plan_reels, 10) || 0) > 0)
+    .map(p => ({
+      name: p.name,
+      pct: Math.round(((parseInt(p.done_reels, 10) || 0) / p.plan_reels) * 100)
+    }))
+    .sort((a, b) => b.pct - a.pct);
+  document.getElementById('statTopProject').textContent = withProgress[0]
+    ? `${withProgress[0].name} — ${withProgress[0].pct}%`
+    : '—';
 }
 
 function renderDashboardCharts() {
-  // Chart 1: Plan vs Fact
-  const ctxCompare = document.getElementById('chartCompare');
-  if (ctxCompare && chartCompare) chartCompare.destroy();
+  const projects = state.projects || [];
 
-  chartCompare = new Chart(ctxCompare, {
-    type: 'bar',
-    data: {
-      labels: state.projects.slice(0, 10).map(p => p.name.substring(0, 15)),
-      datasets: [
-        {
-          label: 'План',
-          data: state.projects.slice(0, 10).map(p => p.plan_reels),
-          backgroundColor: '#3b82f6'
-        },
-        {
-          label: 'Факт',
-          data: state.projects.slice(0, 10).map(p => p.done_reels),
-          backgroundColor: '#10b981'
-        }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
-
-  // Chart 2: By stages
+  // Chart 1: By stages (doughnut)
   const ctxStages = document.getElementById('chartStages');
   if (ctxStages && chartStages) chartStages.destroy();
 
-  const stageCount = {
-    'В работе': 0,
-    'На паузе': 0,
-    'Готово': 0,
-    'Проблемный': 0
-  };
-  state.projects.forEach(p => {
-    if (stageCount.hasOwnProperty(p.stage)) {
-      stageCount[p.stage]++;
-    }
+  const stages = ['В работе', 'На паузе', 'Готово', 'Проблемный', 'Отказ'];
+  const stageCount = Object.fromEntries(stages.map(s => [s, 0]));
+  projects.forEach(p => {
+    if (stageCount.hasOwnProperty(p.stage)) stageCount[p.stage]++;
   });
 
-  chartStages = new Chart(ctxStages, {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(stageCount),
-      datasets: [{
-        data: Object.values(stageCount),
-        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444']
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
+  if (ctxStages) {
+    chartStages = new Chart(ctxStages, {
+      type: 'doughnut',
+      data: {
+        labels: stages,
+        datasets: [{
+          data: stages.map(s => stageCount[s]),
+          backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#dc2626', '#6b7280']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+
+  // Chart 2: Top-5 projects by progress (% of plan)
+  const ctxCompare = document.getElementById('chartCompare');
+  if (ctxCompare && chartCompare) chartCompare.destroy();
+
+  const top5 = projects
+    .filter(p => p.stage === 'В работе' && (parseInt(p.plan_reels, 10) || 0) > 0)
+    .map(p => ({
+      name: p.name,
+      plan: parseInt(p.plan_reels, 10) || 0,
+      done: parseInt(p.done_reels, 10) || 0,
+      pct: Math.round(((parseInt(p.done_reels, 10) || 0) / p.plan_reels) * 100)
+    }))
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 5);
+
+  if (ctxCompare) {
+    chartCompare = new Chart(ctxCompare, {
+      type: 'bar',
+      data: {
+        labels: top5.map(p => p.name),
+        datasets: [
+          { label: 'План', data: top5.map(p => p.plan), backgroundColor: '#94a3b8' },
+          { label: 'Сделано', data: top5.map(p => p.done), backgroundColor: '#10b981' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { position: 'bottom' } },
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+  }
+
+  // Chart 3: Project distribution by employee (bar)
+  const ctxEmp = document.getElementById('chartByEmployee');
+  if (ctxEmp && chartByEmployee) chartByEmployee.destroy();
+
+  const byEmployee = new Map();
+  projects.forEach(p => {
+    const name = p.responsible_name || '—';
+    byEmployee.set(name, (byEmployee.get(name) || 0) + 1);
   });
+  const employeeRows = Array.from(byEmployee.entries())
+    .sort((a, b) => b[1] - a[1]);
+
+  if (ctxEmp) {
+    chartByEmployee = new Chart(ctxEmp, {
+      type: 'bar',
+      data: {
+        labels: employeeRows.map(r => r[0]),
+        datasets: [{
+          label: 'Проектов',
+          data: employeeRows.map(r => r[1]),
+          backgroundColor: '#2563eb'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+  }
 }
 
 function renderProjects() {
@@ -665,6 +719,70 @@ function renderAnalytics() {
       </tr>
     `;
   });
+
+  renderAnalyticsCharts(analytics);
+}
+
+function renderAnalyticsCharts(analytics) {
+  // Aggregate by project_name (multiple analytics rows per project are summed)
+  const byProject = new Map();
+  analytics.forEach(a => {
+    const key = a.project_name || '—';
+    const cur = byProject.get(key) || { views: 0, interactions: 0 };
+    cur.views += parseInt(a.views, 10) || 0;
+    cur.interactions += parseInt(a.interactions, 10) || 0;
+    byProject.set(key, cur);
+  });
+
+  const allRows = Array.from(byProject.entries()).map(([name, v]) => ({ name, ...v }));
+  const topViews = allRows.filter(r => r.views > 0).sort((a, b) => b.views - a.views).slice(0, 10);
+  const topInter = allRows.filter(r => r.interactions > 0).sort((a, b) => b.interactions - a.interactions).slice(0, 10);
+
+  const viewsCtx = document.getElementById('chartAnalyticsViews');
+  const interCtx = document.getElementById('chartAnalyticsInteractions');
+
+  if (chartViews) { chartViews.destroy(); chartViews = null; }
+  if (chartInteractions) { chartInteractions.destroy(); chartInteractions = null; }
+
+  if (viewsCtx && topViews.length) {
+    chartViews = new Chart(viewsCtx, {
+      type: 'bar',
+      data: {
+        labels: topViews.map(r => r.name),
+        datasets: [{
+          label: 'Просмотры',
+          data: topViews.map(r => r.views),
+          backgroundColor: '#2563EB'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+  }
+
+  if (interCtx && topInter.length) {
+    chartInteractions = new Chart(interCtx, {
+      type: 'bar',
+      data: {
+        labels: topInter.map(r => r.name),
+        datasets: [{
+          label: 'Взаимодействия',
+          data: topInter.map(r => r.interactions),
+          backgroundColor: '#10B981'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+  }
 }
 
 function renderTasks() {
@@ -763,8 +881,6 @@ function renderEmployees() {
 }
 
 function renderReports() {
-  renderReportSummary();
-
   const activeProjects = state.projects.filter(p => p.stage === 'В работе');
   populateDropdown('reportProject', activeProjects);
   populateDropdown('reportFilterEmployee', state.users || []);
@@ -776,43 +892,6 @@ function renderReports() {
   }
 
   renderReportRows(reports);
-}
-
-function renderReportSummary() {
-  const tbody = document.getElementById('reportsSummaryTable');
-  if (!tbody) return;
-
-  const activeProjects = state.projects.filter(p => p.stage === 'В работе');
-  tbody.innerHTML = '';
-
-  if (activeProjects.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" style="text-align:center; color:var(--gray);">Нет проектов в работе</td>
-      </tr>
-    `;
-    return;
-  }
-
-  activeProjects.forEach(project => {
-    const projectAnalytics = (state.analytics || []).filter(a => a.project_id === project.id);
-    const totalViews = projectAnalytics.reduce((sum, a) => sum + (parseInt(a.views, 10) || 0), 0);
-    const totalSubs = projectAnalytics.reduce((sum, a) => sum + (parseInt(a.subs, 10) || 0), 0);
-    const totalInteractions = projectAnalytics.reduce((sum, a) => sum + (parseInt(a.interactions, 10) || 0), 0);
-    const responsible = (state.users || []).find(u => u.id === project.responsible_id)?.name || '-';
-
-    tbody.innerHTML += `
-      <tr>
-        <td>${escapeHtml(project.name)}</td>
-        <td>${escapeHtml(responsible)}</td>
-        <td>${project.plan_reels ?? 0}</td>
-        <td>${project.done_reels ?? 0}</td>
-        <td>${totalViews}</td>
-        <td>${totalSubs}</td>
-        <td>${totalInteractions}</td>
-      </tr>
-    `;
-  });
 }
 
 function renderReportRows(reports) {
@@ -996,6 +1075,35 @@ function clearReportFilters() {
 function renderFinance() {
   renderFinanceReport();
   renderFinanceAnalytics();
+}
+
+function renderArchive() {
+  if (!state.isAdmin()) return;
+  const tbody = document.getElementById('archiveTable');
+  if (!tbody) return;
+
+  const rows = state.archivedProjects || [];
+  tbody.innerHTML = '';
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray);">В архиве пока пусто. Проекты попадают сюда, когда вы ставите галочку «Выплачено» в финансах.</td></tr>';
+    return;
+  }
+
+  rows.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.stage || '')}</td>
+        <td>${escapeHtml(p.responsible_name || '')}</td>
+        <td>${(p.plan_reels || 0)} / ${(p.done_reels || 0)}</td>
+        <td>${escapeHtml(formatDate(p.archived_at) || '—')}</td>
+        <td>
+          <button class="btn-sm" data-action="restore-project" data-id="${p.id}">↩️ Восстановить</button>
+        </td>
+      </tr>
+    `;
+  });
 }
 
 function renderAccess() {
@@ -1494,19 +1602,25 @@ function getPayablesByEmployee() {
   return groups;
 }
 
-// Per-project paid checkbox state, persisted in localStorage
-function isProjectPaid(projectId) {
-  try {
-    const map = JSON.parse(localStorage.getItem('paidProjects') || '{}');
-    return !!map[projectId];
-  } catch { return false; }
+// Archive a paid project via API. The checkbox is the trigger.
+async function archiveProject(projectId) {
+  const result = await api.post(`/projects/${projectId}/archive`);
+  if (!result) return;
+  // Refresh state: project moves from active to archived list
+  state.projects = state.projects.filter(p => p.id !== projectId);
+  state.archivedProjects = state.archivedProjects || [];
+  state.archivedProjects.unshift(result);
+  renderFinanceReport();
+  showToast('Проект отправлен в архив', 'success');
 }
-function setProjectPaid(projectId, paid) {
-  try {
-    const map = JSON.parse(localStorage.getItem('paidProjects') || '{}');
-    if (paid) map[projectId] = true; else delete map[projectId];
-    localStorage.setItem('paidProjects', JSON.stringify(map));
-  } catch {}
+
+async function restoreProject(projectId) {
+  const result = await api.post(`/projects/${projectId}/restore`);
+  if (!result) return;
+  state.archivedProjects = (state.archivedProjects || []).filter(p => p.id !== projectId);
+  state.projects.unshift(result);
+  renderArchive();
+  showToast('Проект восстановлен', 'success');
 }
 
 function getTotalExpenses() {
@@ -1541,12 +1655,10 @@ function renderFinanceReport() {
         const { salary, bonus, total, bonuses, totals, plan, done } = calculateProjectPayout(project);
         empSalary += salary;
         empBonus += bonus;
-        const paid = isProjectPaid(project.id);
-        const rowBg = paid ? 'background: #ECFDF5;' : '';
 
         tbody.innerHTML += `
-          <tr style="${rowBg}">
-            <td><input type="checkbox" data-action="toggle-paid" data-id="${project.id}" ${paid ? 'checked' : ''}></td>
+          <tr>
+            <td title="Отметить выплаченным → проект уйдёт в архив"><input type="checkbox" data-action="toggle-paid" data-id="${project.id}"></td>
             <td>${idx === 0 ? `<strong>${escapeHtml(name)}</strong>` : ''}</td>
             <td>${escapeHtml(project.name)}</td>
             <td>${escapeHtml(project.stage)}</td>

@@ -78,6 +78,8 @@ async function initializeDatabase() {
         plan_reels INTEGER DEFAULT 0,
         done_reels INTEGER DEFAULT 0,
         regular_posting_bonus INTEGER DEFAULT 0,
+        archived INTEGER DEFAULT 0,
+        archived_at TEXT,
         start_date TEXT,
         comment TEXT
       );
@@ -144,18 +146,6 @@ async function initializeDatabase() {
         bonus_amount INTEGER DEFAULT 1000
       );
 
-      CREATE TABLE IF NOT EXISTS daily_reels (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        project_id INTEGER NOT NULL,
-        responsible_id INTEGER NOT NULL,
-        date TEXT NOT NULL,
-        reel_count INTEGER DEFAULT 0,
-        notes TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')),
-        UNIQUE(project_id, responsible_id, date)
-      );
-
       CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -194,6 +184,12 @@ async function initializeDatabase() {
     const projectsColumns = await allAsync('PRAGMA table_info(projects)');
     if (!projectsColumns.some(c => c.name === 'regular_posting_bonus')) {
       await runAsync('ALTER TABLE projects ADD COLUMN regular_posting_bonus INTEGER DEFAULT 0');
+    }
+    if (!projectsColumns.some(c => c.name === 'archived')) {
+      await runAsync('ALTER TABLE projects ADD COLUMN archived INTEGER DEFAULT 0');
+    }
+    if (!projectsColumns.some(c => c.name === 'archived_at')) {
+      await runAsync('ALTER TABLE projects ADD COLUMN archived_at TEXT');
     }
 
     // Migrate older databases: add finance bonus columns if absent
@@ -433,6 +429,25 @@ async function seedDatabase() {
           `, [proj.id, t.project, t.task_name, startStr, endStr, proj.responsible_id, proj.responsible_name, t.stage, t.comment]);
         }
       }
+    }
+
+    // Backfill: ensure every project with done_reels > 0 has a backing report.
+    // Without this, the first user report would overwrite done_reels via recalc.
+    const orphanProjects = await allAsync(`
+      SELECT p.id, p.name, p.done_reels
+      FROM projects p
+      WHERE COALESCE(p.archived, 0) = 0
+        AND p.done_reels > 0
+        AND NOT EXISTS (SELECT 1 FROM reports r WHERE r.project_id = p.id)
+    `);
+    for (const op of orphanProjects) {
+      await runAsync(`
+        INSERT INTO reports (user_id, user_name, project_id, project_name, date, time, reels_created, reels_published, platforms, comment)
+        VALUES (1, 'Administrator', ?, ?, '2026-05-01', '09:00', 0, ?, 'Instagram', 'Backfill: первичный учёт сделанной работы')
+      `, [op.id, op.name, op.done_reels]);
+    }
+    if (orphanProjects.length > 0) {
+      console.log(`✅ Backfilled ${orphanProjects.length} historical report(s) so done_reels matches reports`);
     }
 
     // Auto-promote completed 'В работе' projects to 'Готово' (one-time backfill at startup)

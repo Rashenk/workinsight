@@ -44,7 +44,7 @@
                 <input type="text" id="userName" placeholder="введите email или имя">
             </div>
 
-            <div class="form-group" id="passwordGroup" style="display: none;">
+            <div class="form-group" id="passwordGroup">
                 <label>Пароль *</label>
                 <input type="password" id="userPassword" placeholder="Введите пароль">
             </div>
@@ -134,10 +134,6 @@
                 <i class="fas fa-file-alt" aria-hidden="true"></i>
                 <span>Отчёты</span>
             </button>
-            <button class="nav-item" type="button" data-section="daily-reels">
-                <i class="fas fa-check-square" aria-hidden="true"></i>
-                <span>Рилс на сегодня</span>
-            </button>
         </nav>
 
         <nav class="nav-section" aria-label="Документация">
@@ -162,6 +158,10 @@
 
         <nav class="nav-section" id="adminSection" style="display: none;" aria-label="Администратор">
             <div class="nav-label">Администратор</div>
+            <button class="nav-item" type="button" data-section="archive">
+                <i class="fas fa-box-archive" aria-hidden="true"></i>
+                <span>Архив</span>
+            </button>
             <button class="nav-item" type="button" data-section="access">
                 <i class="fas fa-key" aria-hidden="true"></i>
                 <span>Доступы</span>
@@ -188,8 +188,11 @@
 
             <!-- DASHBOARD -->
             <div class="content-section active" id="dashboardSection">
-                <h2 style="margin-bottom: 20px;">Обзор проектов</h2>
-                <div class="stats-grid">
+                <h2 style="margin-bottom: 20px;">Обзор</h2>
+
+                <!-- Statuses row -->
+                <div style="margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px;">Статусы проектов</div>
+                <div class="stats-grid" style="margin-bottom: 24px;">
                     <div class="stat-card">
                         <div class="stat-label">Всего проектов</div>
                         <div class="stat-value" id="statTotal">0</div>
@@ -208,44 +211,72 @@
                     </div>
                 </div>
 
-                <div class="table-section" style="margin-bottom: 30px;">
-                    <div class="table-header">
-                        <div class="table-title">Проекты в работе</div>
+                <!-- Aggregate metrics row -->
+                <div style="margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px;">Совокупные показатели</div>
+                <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card" style="border-left-color: var(--primary);">
+                        <div class="stat-label">Общие просмотры</div>
+                        <div class="stat-value" id="statViews">0</div>
                     </div>
-                    <div style="overflow-x: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Проект</th>
-                                    <th>Ответственный</th>
-                                    <th>Платформа</th>
-                                    <th>План</th>
-                                    <th>Сделано</th>
-                                    <th>%</th>
-                                    <th>Прогресс</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dashboardTable">
-                            </tbody>
-                        </table>
+                    <div class="stat-card" style="border-left-color: var(--success);">
+                        <div class="stat-label">Новые подписки</div>
+                        <div class="stat-value" id="statSubs">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--warning);">
+                        <div class="stat-label">Взаимодействия</div>
+                        <div class="stat-value" id="statInteractions">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #8b5cf6;">
+                        <div class="stat-label">Продажи</div>
+                        <div class="stat-value" id="statSales">0</div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Plan execution KPI -->
+                <div style="margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px;">Выполнение плана</div>
+                <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card" style="border-left-color: var(--primary);">
+                        <div class="stat-label">Сделано рилсов</div>
+                        <div class="stat-value" id="statDoneReels">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--gray);">
+                        <div class="stat-label">План рилсов</div>
+                        <div class="stat-value" id="statPlanReels">0</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--success);">
+                        <div class="stat-label">% выполнения</div>
+                        <div class="stat-value" id="statProgress">0%</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #f97316;">
+                        <div class="stat-label">Топ-проект (% плана)</div>
+                        <div class="stat-value" id="statTopProject" style="font-size: 16px;">—</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
                     <div class="table-section">
                         <div class="table-header">
-                            <div class="table-title">План vs Факт</div>
+                            <div class="table-title">По этапам</div>
                         </div>
-                        <div style="padding: 20px;">
+                        <div style="padding: 20px; height: 320px;">
+                            <canvas id="chartStages"></canvas>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Топ-5 проектов: план vs факт</div>
+                        </div>
+                        <div style="padding: 20px; height: 320px;">
                             <canvas id="chartCompare"></canvas>
                         </div>
                     </div>
                     <div class="table-section">
                         <div class="table-header">
-                            <div class="table-title">По этапам</div>
+                            <div class="table-title">Распределение проектов по сотрудникам</div>
                         </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartStages"></canvas>
+                        <div style="padding: 20px; height: 320px;">
+                            <canvas id="chartByEmployee"></canvas>
                         </div>
                     </div>
                 </div>
@@ -330,16 +361,16 @@
                         <div class="table-header">
                             <div class="table-title">Просмотры по проектам (топ-10)</div>
                         </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartViews"></canvas>
+                        <div style="padding: 20px; height: 360px;">
+                            <canvas id="chartAnalyticsViews"></canvas>
                         </div>
                     </div>
                     <div class="table-section">
                         <div class="table-header">
-                            <div class="table-title">Взаимодействия по проектам</div>
+                            <div class="table-title">Взаимодействия по проектам (топ-10)</div>
                         </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartInteractions"></canvas>
+                        <div style="padding: 20px; height: 360px;">
+                            <canvas id="chartAnalyticsInteractions"></canvas>
                         </div>
                     </div>
                 </div>
@@ -417,28 +448,6 @@
                 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                     <button class="btn-secondary" id="newReportTab" type="button">📝 Новый отчёт</button>
                     <button class="btn-primary" id="allReportsTab" type="button" style="background: var(--primary); color: white; border: none;">📋 Все отчёты</button>
-                </div>
-
-                <div class="table-section" style="margin-bottom: 20px;">
-                    <div class="table-header">
-                        <div class="table-title">Сводка по проектам в работе</div>
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Проект</th>
-                                    <th>Ответственный</th>
-                                    <th>План рилсов</th>
-                                    <th>Сделано рилсов</th>
-                                    <th>Просмотры</th>
-                                    <th>Подписки</th>
-                                    <th>Взаимодействия</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reportsSummaryTable"></tbody>
-                        </table>
-                    </div>
                 </div>
 
                 <!-- New Report Form -->
@@ -526,8 +535,6 @@
             </div>
 
             <!-- DAILY REELS CHECKLIST -->
-            <div class="content-section" id="dailyReelsSection"></div>
-
             <!-- REGULATIONS -->
             <div class="content-section" id="regulationsSection">
                 <div class="table-section">
@@ -1404,6 +1411,33 @@ FOMO — страх упустить что-то важное
                 </div>
             </div>
 
+            <!-- ARCHIVE (Admin only) -->
+            <div class="content-section" id="archiveSection">
+                <div class="table-section">
+                    <div class="table-header">
+                        <div class="table-title">📦 Архив проектов</div>
+                    </div>
+                    <div style="padding: 12px 20px; background: #F9FAFB; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--gray);">
+                        Проекты попадают сюда автоматически, когда вы ставите галочку «Выплачено» в финансах. Архивные проекты не показываются на дашборде, в проектах, отчётах и выплатах. Аналитика и история отчётов сохраняются.
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Проект</th>
+                                    <th>Этап</th>
+                                    <th>Сотрудник</th>
+                                    <th>План / Сделано</th>
+                                    <th>Дата архивации</th>
+                                    <th style="width: 140px;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="archiveTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- ACCESS (Admin only) -->
             <div class="content-section" id="accessSection">
                 <div class="table-section">
@@ -1714,7 +1748,6 @@ FOMO — страх упустить что-то важное
 <script defer src="js/core/auth.js"></script>
 <script defer src="js/utils/helpers.js"></script>
 <script defer src="js/utils/modals.js"></script>
-<script defer src="js/pages/daily-reels.js"></script>
 <script defer src="js/app.js"></script>
 
 </body>

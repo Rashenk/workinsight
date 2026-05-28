@@ -17,20 +17,69 @@ async function findProjectByName(name, excludeId = null) {
   return all.find(p => p.name.trim().toLocaleLowerCase('ru') === target && p.id !== excludeId) || null;
 }
 
-// GET all projects - employees see only their projects
+// GET active projects - employees see only their projects
 router.get('/', verifyToken, async (req, res) => {
   try {
     let projects;
     if (req.user.role === 'admin') {
-      projects = await allAsync('SELECT * FROM projects ORDER BY id DESC');
+      projects = await allAsync('SELECT * FROM projects WHERE COALESCE(archived, 0) = 0 ORDER BY id DESC');
     } else {
       projects = await allAsync(`
         SELECT * FROM projects
-        WHERE responsible_id = ?
+        WHERE responsible_id = ? AND COALESCE(archived, 0) = 0
         ORDER BY id DESC
       `, [req.user.id]);
     }
     res.json(projects);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET archived projects - admin only
+router.get('/archived', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const projects = await allAsync(
+      'SELECT * FROM projects WHERE archived = 1 ORDER BY archived_at DESC, id DESC'
+    );
+    res.json(projects);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST archive a project - admin only (called when "Выплачено" is ticked)
+router.post('/:id/archive', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const project = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    await runAsync(
+      `UPDATE projects SET archived = 1, archived_at = datetime('now') WHERE id = ?`,
+      [req.params.id]
+    );
+    const updated = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST restore a project from archive - admin only
+router.post('/:id/restore', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const project = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    await runAsync(
+      `UPDATE projects SET archived = 0, archived_at = NULL WHERE id = ?`,
+      [req.params.id]
+    );
+    const updated = await getAsync('SELECT * FROM projects WHERE id = ?', [req.params.id]);
+    res.json(updated);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
