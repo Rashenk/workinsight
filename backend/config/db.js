@@ -311,7 +311,7 @@ async function seedDatabase() {
       await runAsync(`
         INSERT INTO projects (name, stage, responsible_id, responsible_name, platform, priority, plan_reels, done_reels)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [proj.name, 'В работе', responsibleId, proj.responsible, 'Instagram', 5, 80, doneReels]);
+      `, [proj.name, 'В работе', responsibleId, proj.responsible, 'ВКонтакте', 5, 80, doneReels]);
     }
 
     // Finish Finance params
@@ -401,7 +401,7 @@ async function seedDatabase() {
       { project: 'Производство мебели', task_name: 'Найти монтажера для рекламных роликов', stage: 'В работе', days_from_now: 5, comment: 'Нужен опытный монтажер с портфолио' },
       { project: 'Трейдинг', task_name: 'Сделать ежемесячный отчёт по аналитике', stage: 'В работе', days_from_now: 3, comment: 'Включить графики просмотров и подписок' },
       { project: 'Мужской бренд одежды', task_name: 'Подготовить контент-план на июнь', stage: 'Ждёт', days_from_now: 7, comment: 'Согласовать с клиентом' },
-      { project: 'Аппаратный массаж', task_name: 'Снять 5 рекламных Reels', stage: 'В работе', days_from_now: 4, comment: 'Локации: кабинет + улица' },
+      { project: 'Аппаратный массаж', task_name: 'Снять 5 рекламных клипов', stage: 'В работе', days_from_now: 4, comment: 'Локации: кабинет + улица' },
       { project: 'Покер еще новый', task_name: 'Провести анализ конкурентов', stage: 'Готово', days_from_now: -2, comment: 'Отчёт отправлен' },
       { project: 'Личный бренд дети', task_name: 'Записать серию интервью', stage: 'Ждёт', days_from_now: 10, comment: 'Согласовать сценарий' },
       { project: 'Дизайн интерьера', task_name: 'Опубликовать кейсы за май', stage: 'В работе', days_from_now: 2, comment: '3 кейса с фото до/после' },
@@ -443,7 +443,7 @@ async function seedDatabase() {
     for (const op of orphanProjects) {
       await runAsync(`
         INSERT INTO reports (user_id, user_name, project_id, project_name, date, time, reels_created, reels_published, platforms, comment)
-        VALUES (1, 'Administrator', ?, ?, '2026-05-01', '09:00', 0, ?, 'Instagram', 'Backfill: первичный учёт сделанной работы')
+        VALUES (1, 'Administrator', ?, ?, '2026-05-01', '09:00', 0, ?, 'ВКонтакте', 'Backfill: первичный учёт сделанной работы')
       `, [op.id, op.name, op.done_reels]);
     }
     if (orphanProjects.length > 0) {
@@ -456,6 +456,20 @@ async function seedDatabase() {
     );
     if (promoted && promoted.changes) {
       console.log(`✅ Auto-promoted ${promoted.changes} project(s) to 'Готово' (100% reached)`);
+    }
+
+    // Migrate legacy Instagram platform values to ВКонтакте
+    const migratedProjects = await runAsync(
+      `UPDATE projects SET platform = 'ВКонтакте' WHERE platform IN ('Instagram', 'Instagram+ВК')`
+    );
+    if (migratedProjects && migratedProjects.changes) {
+      console.log(`✅ Migrated ${migratedProjects.changes} project(s) platform Instagram → ВКонтакте`);
+    }
+    const migratedReports = await runAsync(
+      `UPDATE reports SET platforms = REPLACE(REPLACE(platforms, 'Instagram+ВК', 'ВКонтакте'), 'Instagram', 'ВКонтакте') WHERE platforms LIKE '%Instagram%'`
+    );
+    if (migratedReports && migratedReports.changes) {
+      console.log(`✅ Migrated ${migratedReports.changes} report(s) platforms Instagram → ВКонтакте`);
     }
 
     // Backfill: every project must have an analytics row.

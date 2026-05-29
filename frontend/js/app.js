@@ -1135,7 +1135,7 @@ function openProjectModal() {
   document.getElementById('projectForm').reset();
   openModal('projectModal');
   populateDropdown('projectResponsible', state.users || []);
-  populateDropdown('projectPlatform', ['Instagram', 'TikTok', 'YouTube', 'Pinterest']);
+  populateDropdown('projectPlatform', ['ВКонтакте', 'VK Клипы', 'TikTok', 'YouTube']);
 }
 
 function openTaskModal() {

@@ -79,7 +79,7 @@ async function seedData() {
           time,
           Math.floor(Math.random() * 10) + 1,
           Math.floor(Math.random() * 10) + 1,
-          'Instagram, TikTok',
+          'ВКонтакте, TikTok',
           `Отчет по работе ${i + 1}`,
           'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
         ]
@@ -92,7 +92,7 @@ async function seedData() {
     console.log('🔐 Seeding access credentials...');
     let accessCount = 0;
 
-    const platforms = ['Instagram', 'TikTok', 'YouTube', 'Pinterest'];
+    const platforms = ['ВКонтакте', 'VK Клипы', 'TikTok', 'YouTube'];
 
     for (let i = 0; i < Math.min(25, projects.length); i++) {
       const projectId = projects[i].id;
