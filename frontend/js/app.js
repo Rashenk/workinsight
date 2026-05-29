@@ -917,7 +917,7 @@ function renderReportRows(reports) {
         <td>${escapeHtml(report.time)}</td>
         <td>${escapeHtml(report.user_name)}</td>
         <td>${escapeHtml(report.project_name)}</td>
-        <td>${report.reels_created} / ${report.reels_published}</td>
+        <td>${report.reels_published}</td>
         <td>${escapeHtml(report.platforms)}</td>
         <td>${escapeHtml(report.comment)}</td>
         <td>${report.screenshot_data ? '📸' : '-'}</td>
@@ -1283,6 +1283,7 @@ async function saveProject(e) {
   state.editingId = null;
   showToast(id ? 'Проект обновлён' : 'Проект создан', 'success');
   state.projects = (await api.get('/projects')) || [];
+  state.analytics = (await api.get('/analytics')) || [];
   renderProjects();
 }
 

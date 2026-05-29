@@ -472,6 +472,29 @@ async function seedDatabase() {
       console.log(`✅ Migrated ${migratedReports.changes} report(s) platforms Instagram → ВКонтакте`);
     }
 
+    // One analytics row per project. Dedupe legacy duplicates, prefer the row
+    // with the most real data so user-entered numbers survive the merge.
+    const dupGroups = await allAsync(`
+      SELECT project_id, COUNT(*) as cnt FROM analytics
+      WHERE project_id IS NOT NULL
+      GROUP BY project_id HAVING cnt > 1
+    `);
+    for (const g of dupGroups) {
+      const rows = await allAsync(
+        'SELECT * FROM analytics WHERE project_id = ? ORDER BY id',
+        [g.project_id]
+      );
+      const score = (r) => (r.views || 0) + (r.subs || 0) + (r.total_subs || 0) + (r.interactions || 0) + (r.sales || 0);
+      const winner = rows.reduce((a, b) => (score(b) > score(a) ? b : a));
+      const losers = rows.filter(r => r.id !== winner.id);
+      for (const l of losers) {
+        await runAsync('DELETE FROM analytics WHERE id = ?', [l.id]);
+      }
+    }
+    if (dupGroups.length > 0) {
+      console.log(`✅ Deduped analytics for ${dupGroups.length} project(s)`);
+    }
+
     // Backfill: every project must have an analytics row.
     // Covers manually-added projects (UI/SQL) and any past seed gaps.
     const monthsRu = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
@@ -491,6 +514,30 @@ async function seedDatabase() {
     }
     if (missing.length > 0) {
       console.log(`✅ Backfilled analytics for ${missing.length} project(s)`);
+    }
+
+    // Populate empty analytics rows with realistic demo numbers
+    // (only fills rows where all metrics are 0 — never overwrites user data)
+    const emptyRows = await allAsync(`
+      SELECT id FROM analytics
+      WHERE COALESCE(views, 0) = 0 AND COALESCE(subs, 0) = 0
+        AND COALESCE(total_subs, 0) = 0 AND COALESCE(interactions, 0) = 0
+        AND COALESCE(sales, 0) = 0
+    `);
+    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    for (const r of emptyRows) {
+      const views = rand(35000, 480000);
+      const subs = Math.round(views * (0.004 + Math.random() * 0.006));
+      const totalSubs = subs * rand(8, 25);
+      const interactions = Math.round(views * (0.0004 + Math.random() * 0.0008));
+      const sales = Math.round(subs * (0.04 + Math.random() * 0.09));
+      await runAsync(
+        `UPDATE analytics SET views = ?, subs = ?, total_subs = ?, interactions = ?, sales = ? WHERE id = ?`,
+        [views, subs, totalSubs, interactions, sales, r.id]
+      );
+    }
+    if (emptyRows.length > 0) {
+      console.log(`✅ Populated ${emptyRows.length} empty analytics row(s) with demo numbers`);
     }
 
     console.log('✅ Database seeded with initial data');

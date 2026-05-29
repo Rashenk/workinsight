@@ -27,6 +27,25 @@ router.post('/', verifyToken, async (req, res) => {
     const finalResponsibleId = req.user.role === 'admin' && responsible_id ? responsible_id : req.user.id;
     const finalResponsibleName = req.user.role === 'admin' && responsible_name ? responsible_name : req.user.name;
 
+    // Upsert: one analytics row per project. Re-creating updates the existing row.
+    const existing = project_id
+      ? await getAsync('SELECT * FROM analytics WHERE project_id = ?', [project_id])
+      : null;
+
+    if (existing) {
+      if (req.user.role !== 'admin' && existing.responsible_id !== req.user.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      await runAsync(`
+        UPDATE analytics
+        SET project_name = ?, responsible_id = ?, responsible_name = ?, start_date = ?, views = ?, subs = ?, total_subs = ?, interactions = ?, sales = ?, period = ?
+        WHERE id = ?
+      `, [project_name || existing.project_name, finalResponsibleId, finalResponsibleName, start_date || existing.start_date,
+          views || 0, subs || 0, total_subs || 0, interactions || 0, sales || 0, period || existing.period, existing.id]);
+      const updated = await getAsync('SELECT * FROM analytics WHERE id = ?', [existing.id]);
+      return res.json(updated);
+    }
+
     await runAsync(`
       INSERT INTO analytics (project_id, project_name, responsible_id, responsible_name, start_date, views, subs, total_subs, interactions, sales, period)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -52,6 +71,14 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     if (req.user.role !== 'admin' && analytics.responsible_id !== req.user.id) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Prevent moving record onto a project that already has an analytics row
+    if (project_id !== undefined && project_id !== analytics.project_id) {
+      const conflict = await getAsync('SELECT id FROM analytics WHERE project_id = ? AND id != ?', [project_id, req.params.id]);
+      if (conflict) {
+        return res.status(400).json({ error: 'У этого проекта уже есть запись аналитики' });
+      }
     }
 
     // Only an admin may reassign a record to a different responsible user
