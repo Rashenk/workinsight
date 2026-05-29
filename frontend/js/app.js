@@ -1159,6 +1159,38 @@ function openAnalyticsModal() {
   openModal('analyticsModal');
   populateDropdown('analyticsProject', state.projects || []);
   populateDropdown('analyticsResponsible', state.users || []);
+
+  const projectSelect = document.getElementById('analyticsProject');
+  const responsibleSelect = document.getElementById('analyticsResponsible');
+
+  projectSelect.onchange = () => {
+    const pid = parseInt(projectSelect.value) || null;
+    const project = (state.projects || []).find(p => p.id === pid);
+    if (project && project.responsible_id) {
+      const owner = (state.users || []).find(u => u.id === project.responsible_id);
+      if (owner) {
+        populateDropdown('analyticsResponsible', [owner]);
+        responsibleSelect.value = owner.id;
+        return;
+      }
+    }
+    populateDropdown('analyticsResponsible', state.users || []);
+  };
+
+  responsibleSelect.onchange = () => {
+    const uid = parseInt(responsibleSelect.value) || null;
+    const prevProjectId = projectSelect.value;
+    if (uid) {
+      const owned = (state.projects || []).filter(p => p.responsible_id === uid);
+      populateDropdown('analyticsProject', owned);
+      if (owned.some(p => String(p.id) === String(prevProjectId))) {
+        projectSelect.value = prevProjectId;
+      }
+    } else {
+      populateDropdown('analyticsProject', state.projects || []);
+      if (prevProjectId) projectSelect.value = prevProjectId;
+    }
+  };
 }
 
 function openEmployeeModal(selectedProjectIds = []) {
